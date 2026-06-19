@@ -24,6 +24,10 @@ final class AntigravityQuotaEngine {
     }
 
     func presentLogin(onComplete: @escaping @MainActor () -> Void) {
+        ProviderLogin.openInBrowser(for: provider, onComplete: onComplete)
+    }
+
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) {
         let store = dataStore
         WebAuthController.show(WebAuthController.Config(
             providerID: .antigravity,

@@ -3,12 +3,12 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var settings: DesklineSettings
     @EnvironmentObject private var coordinator: QuotaCoordinator
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Form {
             Section("HUD") {
                 Toggle("Show HUD bar", isOn: $settings.hudVisible)
+                Toggle("Lock position", isOn: $settings.hudPositionLocked)
                 Toggle("Click-through (ignore mouse)", isOn: $settings.clickThrough)
                 Slider(value: $settings.hudOpacity, in: 0.35...1.0) {
                     Text("Opacity")
@@ -16,6 +16,19 @@ struct SettingsView: View {
                 Text("\(Int(settings.hudOpacity * 100))%")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Button("Reset HUD position (top center)") {
+                    settings.resetHUDPosition()
+                    notifySettingsChanged()
+                }
+                if settings.clickThrough {
+                    Text("Click-through disables dragging. Turn off to move the HUD.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if !settings.hudPositionLocked {
+                    Text("Click and drag the HUD bar to move it anywhere on screen.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Providers") {
@@ -28,7 +41,7 @@ struct SettingsView: View {
                 ForEach(AIProvider.allCases) { provider in
                     accountRow(for: provider)
                 }
-                Text("Claude reads ~/.claude/projects locally. Codex also reads ~/.codex/sessions. Cursor, Gemini, and Antigravity need sign-in.")
+                Text("Sign in opens your default browser (Safari, Chrome, etc.). Use “Link in app” when Deskline needs API cookies for quota sync.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -40,17 +53,23 @@ struct SettingsView: View {
                     Text("2 min").tag(120.0)
                     Text("5 min").tag(300.0)
                 }
+                if let label = coordinator.lastRefreshedLabel {
+                    Text("Last refresh: \(label)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Button("Refresh now") {
                     coordinator.refreshNow(enabled: settings.enabledProviderList)
                 }
             }
         }
         .formStyle(.grouped)
-        .frame(width: 380, height: 520)
+        .frame(width: 400, height: 620)
         .padding()
         .onChange(of: settings.hudOpacity) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.clickThrough) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.hudVisible) { _, _ in notifySettingsChanged() }
+        .onChange(of: settings.hudPositionLocked) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.enabledProviders) { _, _ in
             notifySettingsChanged()
             coordinator.refreshNow(enabled: settings.enabledProviderList)
@@ -63,26 +82,33 @@ struct SettingsView: View {
     @ViewBuilder
     private func accountRow(for provider: AIProvider) -> some View {
         let auth = coordinator.authStates[provider] ?? .signedOut
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(provider.displayName)
-                Text(authLabel(auth, provider: provider))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if provider.supportsWebLogin {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(provider.displayName)
+                    Text(authLabel(auth, provider: provider))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
                 if auth == .signedIn {
                     Button("Sign out") {
                         Task { await coordinator.signOut(provider: provider) }
                     }
-                } else {
-                    Button("Sign in…") {
+                }
+            }
+            if provider.supportsWebLogin {
+                HStack {
+                    Button("Sign in (browser)…") {
                         coordinator.presentLogin(for: provider)
                     }
+                    Button("Link in app…") {
+                        coordinator.presentInAppLogin(for: provider)
+                    }
+                    .help("Opens an in-app window to capture API session cookies")
                 }
             } else {
-                Text("Local")
+                Text("Local files")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

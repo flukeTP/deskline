@@ -24,7 +24,10 @@ final class ClaudeQuotaEngine {
     }
 
     func presentLogin(onComplete: @escaping @MainActor () -> Void) {
-        // claude.ai blocks embedded WebKit (Cloudflare). Claude quota is local-only.
+        ProviderLogin.openInBrowser(for: provider, onComplete: onComplete)
+    }
+
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) {
         onComplete()
     }
 

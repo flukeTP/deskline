@@ -42,6 +42,19 @@ swift build -c release
 .build/release/Deskline
 ```
 
+App bundle + DMG (v0.2.0):
+
+```bash
+./build.sh      # → build/Deskline.app
+./release.sh    # → build/Deskline-0.2.0.dmg
+```
+
+Verify quota parsers without GUI:
+
+```bash
+.build/release/Deskline --verify
+```
+
 Look for the **Deskline** icon in the menu bar. The HUD appears centered near the top of the main screen.
 
 ## Menu bar

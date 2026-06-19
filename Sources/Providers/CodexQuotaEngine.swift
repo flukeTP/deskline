@@ -35,6 +35,10 @@ final class CodexQuotaEngine {
     }
 
     func presentLogin(onComplete: @escaping @MainActor () -> Void) {
+        ProviderLogin.openInBrowser(for: provider, onComplete: onComplete)
+    }
+
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) {
         WebAuthController.show(WebAuthController.Config(
             providerID: .codex,
             title: "Sign in to ChatGPT",

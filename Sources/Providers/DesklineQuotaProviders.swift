@@ -5,6 +5,7 @@ protocol DesklineQuotaProvider: AnyObject {
     var provider: AIProvider { get }
     func checkAuth() async -> AuthState
     func presentLogin(onComplete: @escaping @MainActor () -> Void)
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void)
     func signOut() async
     func fetchQuota() async -> QuotaSnapshot
 }
@@ -41,6 +42,10 @@ final class ClaudeQuotaProvider: DesklineQuotaProvider {
         engine.presentLogin(onComplete: onComplete)
     }
 
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) {
+        engine.presentInAppLogin(onComplete: onComplete)
+    }
+
     func signOut() async {
         await engine.signOut()
     }
@@ -73,6 +78,7 @@ final class CursorQuotaProvider: DesklineQuotaProvider {
 
     func checkAuth() async -> AuthState { await engine.checkAuth() }
     func presentLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentLogin(onComplete: onComplete) }
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentInAppLogin(onComplete: onComplete) }
     func signOut() async { await engine.signOut() }
 
     func fetchQuota() async -> QuotaSnapshot {
@@ -94,6 +100,7 @@ final class CodexQuotaProvider: DesklineQuotaProvider {
 
     func checkAuth() async -> AuthState { await engine.checkAuth() }
     func presentLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentLogin(onComplete: onComplete) }
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentInAppLogin(onComplete: onComplete) }
     func signOut() async { await engine.signOut() }
 
     func fetchQuota() async -> QuotaSnapshot {
@@ -123,6 +130,7 @@ final class GeminiQuotaProvider: DesklineQuotaProvider {
 
     func checkAuth() async -> AuthState { await engine.checkAuth() }
     func presentLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentLogin(onComplete: onComplete) }
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentInAppLogin(onComplete: onComplete) }
     func signOut() async { await engine.signOut() }
 
     func fetchQuota() async -> QuotaSnapshot {
@@ -144,6 +152,7 @@ final class AntigravityQuotaProvider: DesklineQuotaProvider {
 
     func checkAuth() async -> AuthState { await engine.checkAuth() }
     func presentLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentLogin(onComplete: onComplete) }
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) { engine.presentInAppLogin(onComplete: onComplete) }
     func signOut() async { await engine.signOut() }
 
     func fetchQuota() async -> QuotaSnapshot {

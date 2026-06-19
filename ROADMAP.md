@@ -14,7 +14,7 @@
 - [x] Port **Antigravity** local language-server quotas (optional)
 - [x] File watchers for local providers (refresh on change)
 - [x] WebKit auth flow for Codex + Cursor + Gemini + Antigravity
-- [ ] App icon + DMG packaging
+- [x] App icon + DMG packaging (`./build.sh`, `./release.sh`)
 
 ### MVP HUD format
 

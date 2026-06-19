@@ -23,6 +23,10 @@ final class CursorQuotaEngine {
     }
 
     func presentLogin(onComplete: @escaping @MainActor () -> Void) {
+        ProviderLogin.openInBrowser(for: provider, onComplete: onComplete)
+    }
+
+    func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) {
         WebAuthController.show(WebAuthController.Config(
             providerID: .cursor,
             title: "Sign in to Cursor",
