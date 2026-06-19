@@ -60,6 +60,11 @@ struct HUDBarView: View {
     }
 
     private func hudAccessibilityLabel(_ segments: [QuotaSnapshot]) -> String {
-        segments.map(\.label).joined(separator: ", ")
+        segments.map { snap in
+            if let detail = snap.detail, snap.percentUsed == nil {
+                return "\(snap.provider.displayName): \(detail)"
+            }
+            return snap.label
+        }.joined(separator: ", ")
     }
 }

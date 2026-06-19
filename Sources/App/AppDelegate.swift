@@ -111,7 +111,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func refreshNow() {
-        coordinator.refreshNow(enabled: settings.enabledProviderList)
+        Task { @MainActor in
+            coordinator.refreshNow(enabled: settings.enabledProviderList)
+        }
     }
 
     @objc private func quit() {

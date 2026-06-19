@@ -22,7 +22,13 @@ struct SettingsView: View {
                 ForEach(AIProvider.allCases) { provider in
                     Toggle(provider.displayName, isOn: binding(for: provider))
                 }
-                Text("MVP shell shows stub percentages until parsers are ported from ai-usage-counter.")
+            }
+
+            Section("Accounts") {
+                ForEach(AIProvider.allCases) { provider in
+                    accountRow(for: provider)
+                }
+                Text("Claude reads ~/.claude/projects locally. Codex also reads ~/.codex/sessions. Cursor, Gemini, and Antigravity need sign-in.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -40,7 +46,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 360, height: 420)
+        .frame(width: 380, height: 520)
         .padding()
         .onChange(of: settings.hudOpacity) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.clickThrough) { _, _ in notifySettingsChanged() }
@@ -51,6 +57,46 @@ struct SettingsView: View {
         }
         .onChange(of: settings.refreshInterval) { _, _ in
             coordinator.restartTimer(settings: settings)
+        }
+    }
+
+    @ViewBuilder
+    private func accountRow(for provider: AIProvider) -> some View {
+        let auth = coordinator.authStates[provider] ?? .signedOut
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(provider.displayName)
+                Text(authLabel(auth, provider: provider))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if provider.supportsWebLogin {
+                if auth == .signedIn {
+                    Button("Sign out") {
+                        Task { await coordinator.signOut(provider: provider) }
+                    }
+                } else {
+                    Button("Sign in…") {
+                        coordinator.presentLogin(for: provider)
+                    }
+                }
+            } else {
+                Text("Local")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func authLabel(_ auth: AuthState, provider: AIProvider) -> String {
+        switch auth {
+        case .signedIn:
+            return provider.supportsLocalQuota ? "Signed in or local data" : "Signed in"
+        case .signedOut:
+            return provider.supportsLocalQuota ? "Local files if available" : "Not signed in"
+        case .expired:
+            return "Session expired"
         }
     }
 

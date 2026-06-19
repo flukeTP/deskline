@@ -6,12 +6,14 @@
 - [x] NSPanel HUD — single bar, always on top
 - [x] Settings: opacity, click-through, provider toggles, refresh interval
 - [x] Stub quota coordinator (placeholder percentages)
-- [ ] Port **Claude** parser from ai-usage-counter (`~/.claude/projects`)
-- [ ] Port **Codex** local parser (`~/.codex/sessions`)
-- [ ] Port **Codex** web/API path when signed in to chatgpt.com
-- [ ] Port **Cursor** API path (`cursor.com/api/usage-summary`) when signed in
-- [ ] File watchers for local providers (refresh on change)
-- [ ] WebKit auth flow for Codex + Cursor (adapt from ai-usage-counter)
+- [x] Port **Claude** parser from ai-usage-counter (`~/.claude/projects`)
+- [x] Port **Cursor** API path (`cursor.com/api/usage-summary`) when signed in
+- [x] Port **Codex** local parser (`~/.codex/sessions`)
+- [x] Port **Codex** web/API path when signed in to chatgpt.com
+- [x] Port **Gemini** DOM scrape (beta)
+- [x] Port **Antigravity** local language-server quotas (optional)
+- [x] File watchers for local providers (refresh on change)
+- [x] WebKit auth flow for Codex + Cursor + Gemini + Antigravity
 - [ ] App icon + DMG packaging
 
 ### MVP HUD format
@@ -21,6 +23,8 @@ Claude 42% · Codex 68% · Cursor 55%
 ```
 
 Show only enabled providers. Color shifts toward orange/red above ~70% / ~90% used.
+
+HUD shows the higher of session vs weekly usage (or max quota lane for Antigravity/Gemini lanes).
 
 ---
 
@@ -51,8 +55,8 @@ Show only enabled providers. Color shifts toward orange/red above ~70% / ~90% us
 
 ## Later providers
 
-- [ ] **Gemini** — adapt beta flow from ai-usage-counter
-- [ ] **Antigravity** — local language-server quotas
+- [x] **Gemini** — DOM scrape (ported from ai-usage-counter)
+- [x] **Antigravity** — local language-server quotas (optional; disable in Settings)
 
 ---
 
