@@ -18,7 +18,10 @@ This repo is intentionally separate from [ai-usage-counter](https://github.com/l
 | Cursor parser (`cursor.com/api/usage-summary`) | Done |
 | Gemini usage (DOM scrape) | Done |
 | Antigravity local language server | Done |
-| App icon + DMG packaging | Planned |
+| App icon + DMG packaging | Done |
+| v1 threshold alerts (strip highlight + pulse) | Done |
+| macOS notification on crossing (fire-once) | Done |
+| Menu bar badge dot when a provider is hot | Done |
 
 Parser logic will be **copied/adapted** from `~/Documents/project/public/ai-usage-counter` — not shared as a cross-repo package yet.
 
@@ -61,6 +64,18 @@ Look for the **Deskline** icon in the menu bar (`61%` glance). The floating stri
 
 - **Click** — toggle slide-down strip (Deskline mode) or reset/show detailed bar
 - **Right-click** — Settings, Refresh, Hide/Show floating strip, Quit
+
+## Alerts
+
+When a provider's usage crosses a threshold, Deskline highlights it so you don't have to keep checking:
+
+- **Warn** (default 80%) — colored outline around the provider on the strip + an orange dot on the menu bar.
+- **Critical** (default 95%) — pulsing outline on the strip + a red dot on the menu bar.
+- **macOS notification** — fires once each time a provider crosses up, then re-arms after it drops below warn (no spam).
+
+Adjust thresholds and toggles in **Settings → Alerts**. Use **Preview alert styles** there to see the strip styling instantly without waiting for real usage.
+
+> Notifications require running the built `Deskline.app` (they need a bundle id + code signing). `swift run` shows the strip/badge but cannot post notifications.
 
 ## Privacy (target)
 

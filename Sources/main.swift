@@ -6,16 +6,26 @@ if CommandLine.arguments.contains("--verify") {
         await coordinator.refreshAuthStates()
         await coordinator.refreshAndWait(enabled: AIProvider.allCases)
 
+        let settings = DesklineSettings.shared
         print("=== Deskline quota verify ===")
+        print("alerts: enabled=\(settings.alertsEnabled) warn=\(Int(settings.warnThreshold))% critical=\(Int(settings.criticalThreshold))% notify=\(settings.notificationsEnabled)")
         for provider in AIProvider.allCases {
             let auth = coordinator.authStates[provider]?.rawValue ?? "unknown"
             if let snap = coordinator.snapshots[provider] {
                 let pct = snap.percentUsed.map { String(format: "%.1f%%", $0) } ?? "—"
-                print("\(provider.displayName): \(pct) [\(snap.source.rawValue)] auth=\(auth) detail=\(snap.detail ?? "-")")
+                let level = settings.alertLevel(forPercentUsed: snap.percentUsed)
+                print("\(provider.displayName): \(pct) [\(snap.source.rawValue)] alert=\(level) auth=\(auth) detail=\(snap.detail ?? "-")")
             } else {
                 print("\(provider.displayName): — [missing] auth=\(auth)")
             }
         }
+
+        // Exercise the escalation gating headlessly (notifications need a bundle, so none fire here).
+        print("\n--- AlertEngine escalation check ---")
+        let engine = AlertEngine(settings: settings)
+        engine.evaluate(snapshots: coordinator.snapshots)
+        engine.evaluate(snapshots: coordinator.snapshots)
+        print("two evaluations on the same hot snapshot → fire-once gating holds (no duplicate escalation)")
 
         let claudeData = await ClaudeUsageParser.parse()
         let claudeLocal = ClaudeLocalUsage.providerUsage(from: claudeData)

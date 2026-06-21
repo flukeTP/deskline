@@ -67,6 +67,21 @@ Lightweight decision log for Deskline. Not a full ADR process — solo personal 
 
 ---
 
+## 2026-06-21 — v1 threshold alerts: global, strip-first, fire-once
+
+**Decision:** Alerts use a single global warn/critical pair (default 80/95), surfaced on the strip first (warn outline, critical pulse), with an optional macOS notification and a menu bar badge dot. Notifications fire once per upward crossing and re-arm only after usage drops below warn.
+
+**Context:** Solo use — per-provider thresholds add settings UI without real payoff. The strip is always visible, so it is the primary alert channel; notifications are for when the strip is off-screen/ignored. A provider parked at 88% must not re-notify every refresh.
+
+**Consequences:**
+
+- `AlertEngine` tracks last level per provider and only acts on `level.rank > previous.rank` (escalation-gated). Re-evaluated on every quota change and on settings change.
+- macOS notifications need a bundle id + code signing → work from `build/Deskline.app`, not `swift run`. `requestAuthorization` is bundle-guarded so dev runs degrade gracefully.
+- Per-provider thresholds deferred (see ROADMAP).
+- "Preview alert styles" toggle added for a one-tap visual check without crossing real thresholds.
+
+---
+
 ## Reference — ai-usage-counter parser map
 
 | Provider | Source in ai-usage-counter | Data source |
