@@ -30,7 +30,7 @@ struct DesklineStripView: View {
                     ProviderStripCell(
                         snapshot: snapshot,
                         density: density,
-                        alertLevel: settings.alertLevel(forPercentUsed: snapshot.percentUsed)
+                        alertLevel: alertLevel(for: snapshot, index: index)
                     )
                 }
             }
@@ -62,6 +62,14 @@ struct DesklineStripView: View {
         }
         .opacity(settings.hudOpacity)
         .accessibilityLabel(accessibilityText(segments))
+    }
+
+    private func alertLevel(for snapshot: QuotaSnapshot, index: Int) -> AlertLevel {
+        if settings.previewAlerts {
+            // Alternate so both styles are visible at a glance: odd = critical pulse, even = warn.
+            return index.isMultiple(of: 2) ? .warn : .critical
+        }
+        return settings.alertLevel(forPercentUsed: snapshot.percentUsed)
     }
 
     private func accessibilityText(_ segments: [QuotaSnapshot]) -> String {

@@ -81,6 +81,10 @@ struct SettingsView: View {
                     Text("Pulse the provider on the strip at \(Int(settings.criticalThreshold))%.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Toggle("Preview alert styles on the strip", isOn: $settings.previewAlerts)
+                    Text("Temporarily forces warn + critical styling so you can see them without waiting for real usage. Turns off on relaunch.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 

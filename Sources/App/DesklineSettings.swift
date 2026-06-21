@@ -67,6 +67,10 @@ final class DesklineSettings: ObservableObject {
         didSet { persist() }
     }
 
+    /// Transient: force the strip to show warn/critical styling for a quick visual check.
+    /// Not persisted — always off on launch.
+    @Published var previewAlerts: Bool = false
+
     private let defaults = UserDefaults.standard
     private let enabledProvidersKey = "enabledProviders"
     private let hudOpacityKey = "hudOpacity"
