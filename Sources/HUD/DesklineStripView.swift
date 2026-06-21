@@ -228,14 +228,23 @@ struct NasdaqStripCell: View {
         }
     }
 
+    /// Directional icon so the cell's tilt reads at a glance, before the numbers.
+    private var tiltIcon: String {
+        switch glance.tilt {
+        case .bullish: return "arrow.up.right"
+        case .bearish: return "arrow.down.right"
+        case .neutral: return "minus"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: density == .compact ? 11 : 13, weight: .semibold))
+            Image(systemName: tiltIcon)
+                .font(.system(size: density == .compact ? 11 : 13, weight: .bold))
                 .foregroundStyle(tiltColor)
 
             if density == .expanded {
-                Text("NASDAQ")
+                Text("Watchlist")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white)
             }

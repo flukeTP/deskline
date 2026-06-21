@@ -43,20 +43,24 @@ HUD shows the higher of session vs weekly usage (or max quota lane for Antigravi
 ## v2+ — WidgetKit
 
 - [ ] Desktop widget (small/medium) mirroring HUD data
+- [ ] **Watchlist widget: per-ticker signals + flip highlights** (the detailed,
+      acknowledgeable view — deliberately kept off the terse strip)
 - [ ] Lock Screen / Notification Center widget (if useful)
 - [ ] Shared data container between app and widget extension
 
 ---
 
-## v2+ — Nasdaq module ✅ (v1 shipped)
+## v2+ — Watchlist (stock) module ✅ (v1 shipped)
 
 - [x] Second strip module: nasdaq-signal glance (separate from AI quota)
 - [x] Local-first source: reads `nasdaq-signal/alerts/state.json` (no server)
-- [x] Strip cell: ▲ up / ▼ down counts, colored by net tilt (green/red/neutral)
-- [x] Settings toggle "Show NASDAQ glance" + empty-state hint
+- [x] Terse strip cell: directional arrow + ▲ up / ▼ down counts, colored by net tilt
+- [x] Settings toggle "Show Watchlist glance" + empty-state hint
 - [x] Unit tests for parse/tilt/summary
+- Design: strip = ambient mood glance only; per-ticker + flip detection belong
+  in the widget (state.json changes too rarely for a flip badge to be visible
+  on the strip). See decisions.md (2026-06-21).
 - [ ] Later: live source via localhost API when the dev server is up
-- [ ] Later: per-ticker breakdown in the expanded slide-down strip
 
 ---
 

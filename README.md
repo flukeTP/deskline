@@ -83,14 +83,14 @@ Adjust thresholds and toggles in **Settings → Alerts**. Use **Preview alert st
 
 > Notifications require running the built `Deskline.app` (they need a bundle id + code signing). `swift run` shows the strip/badge but cannot post notifications.
 
-## NASDAQ module
+## Watchlist module
 
-Enable **Settings → Modules → Show NASDAQ glance** to add a stock-signal cell to the strip, sourced from [nasdaq-signal](https://github.com/flukeTP/nasdaq-signal)'s local `alerts/state.json`:
+Enable **Settings → Modules → Show Watchlist glance** to add a stock-signal cell to the strip, sourced from [nasdaq-signal](https://github.com/flukeTP/nasdaq-signal)'s local `alerts/state.json`:
 
-- **▲ up / ▼ down** counts across the watchlist, colored green (net bullish), red (net bearish), or gray (neutral).
+- A single **ambient glance** of your watchlist's net tilt: a directional arrow (↗ bullish / ↘ bearish / – neutral) plus **▲ up / ▼ down** counts, colored to match.
 - Reads the file directly — no server needed. Refreshes when `state.json` syncs (e.g. after the background scorer commits and you pull).
 
-Opt-in and off by default, so it only appears if you use nasdaq-signal.
+The strip stays terse on purpose (mood at a glance). **Per-ticker detail and flip alerts are reserved for the planned desktop widget**, not the strip. Opt-in and off by default.
 
 ## Privacy (target)
 

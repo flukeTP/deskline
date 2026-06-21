@@ -97,6 +97,20 @@ Lightweight decision log for Deskline. Not a full ADR process — solo personal 
 
 ---
 
+## 2026-06-21 — Strip = ambient mood; per-ticker/flips = widget
+
+**Decision:** The Watchlist strip cell stays a single terse glance (directional arrow + up/down counts, colored by net tilt). Per-ticker breakdown and flip highlighting are NOT on the strip — they are reserved for the planned WidgetKit widget.
+
+**Context:** Per-ticker on the strip looks cluttered next to the AI quota cells. More importantly, `state.json` only changes on sync/pull, so a strip "flip" badge would appear for a single refresh cycle and almost never be seen — flip signals need a persistent, acknowledgeable surface. The widget is that surface.
+
+**Consequences:**
+
+- Strip answers one question: "which way is my watchlist leaning right now." Renamed "NASDAQ" → "Watchlist" (it is the user's list, not the index).
+- The widget (v2 WidgetKit) owns per-ticker rows + flip detection (compare against a persisted previous state).
+- Internal type names (`NasdaqGlance`, `showNasdaqModule`) kept to avoid churn; user-facing strings say "Watchlist".
+
+---
+
 ## Reference — ai-usage-counter parser map
 
 | Provider | Source in ai-usage-counter | Data source |

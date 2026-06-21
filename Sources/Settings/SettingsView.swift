@@ -48,8 +48,8 @@ struct SettingsView: View {
             }
 
             Section("Modules") {
-                Toggle("Show NASDAQ glance", isOn: $settings.showNasdaqModule)
-                Text("Adds a stock-signal cell to the strip (▲ up / ▼ down) from nasdaq-signal's alerts/state.json. Updates when that file syncs.")
+                Toggle("Show Watchlist glance", isOn: $settings.showNasdaqModule)
+                Text("Adds a stock-signal cell to the strip — net tilt of your watchlist (▲ up / ▼ down) from nasdaq-signal's alerts/state.json. Per-ticker detail is planned for the widget.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if settings.showNasdaqModule && coordinator.nasdaqGlance == nil {
