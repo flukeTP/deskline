@@ -10,6 +10,11 @@ if CommandLine.arguments.contains("--verify") {
         print("=== Deskline quota verify ===")
         print("alerts: enabled=\(settings.alertsEnabled) warn=\(Int(settings.warnThreshold))% critical=\(Int(settings.criticalThreshold))% notify=\(settings.notificationsEnabled)")
         print("loginItem: available=\(LoginItem.isAvailable) enabled=\(LoginItem.isEnabled)")
+        if let nasdaq = NasdaqStateReader.read() {
+            print("nasdaq: \(nasdaq.summary) (up=\(nasdaq.up) down=\(nasdaq.down) flat=\(nasdaq.flat) tilt=\(nasdaq.tilt))")
+        } else {
+            print("nasdaq: no state.json at \(NasdaqStateReader.defaultStatePath)")
+        }
         for provider in AIProvider.allCases {
             let auth = coordinator.authStates[provider]?.rawValue ?? "unknown"
             if let snap = coordinator.snapshots[provider] {

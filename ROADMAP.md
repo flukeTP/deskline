@@ -48,11 +48,15 @@ HUD shows the higher of session vs weekly usage (or max quota lane for Antigravi
 
 ---
 
-## v2+ — Nasdaq module
+## v2+ — Nasdaq module ✅ (v1 shipped)
 
-- [ ] Second HUD module: nasdaq-signal glance (separate from AI quota)
-- [ ] Code reference: `~/Documents/project/personal/nasdaq-signal`
-- [ ] Toggle modules in settings (AI only vs stocks only vs both)
+- [x] Second strip module: nasdaq-signal glance (separate from AI quota)
+- [x] Local-first source: reads `nasdaq-signal/alerts/state.json` (no server)
+- [x] Strip cell: ▲ up / ▼ down counts, colored by net tilt (green/red/neutral)
+- [x] Settings toggle "Show NASDAQ glance" + empty-state hint
+- [x] Unit tests for parse/tilt/summary
+- [ ] Later: live source via localhost API when the dev server is up
+- [ ] Later: per-ticker breakdown in the expanded slide-down strip
 
 ---
 

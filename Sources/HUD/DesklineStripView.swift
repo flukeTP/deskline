@@ -14,24 +14,28 @@ struct DesklineStripView: View {
 
     var body: some View {
         let segments = settings.enabledProviderList.compactMap { coordinator.snapshots[$0] }
+        let nasdaq = settings.showNasdaqModule ? coordinator.nasdaqGlance : nil
 
         HStack(spacing: density == .compact ? 10 : 14) {
-            if segments.isEmpty {
+            if segments.isEmpty && nasdaq == nil {
                 Text("No providers")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color.white.opacity(0.45))
             } else {
                 ForEach(Array(segments.enumerated()), id: \.element.id) { index, snapshot in
                     if index > 0 {
-                        Text("·")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Color.hudAccent.opacity(0.55))
+                        stripDivider
                     }
                     ProviderStripCell(
                         snapshot: snapshot,
                         density: density,
                         alertLevel: alertLevel(for: snapshot, index: index)
                     )
+                }
+
+                if let nasdaq {
+                    if !segments.isEmpty { stripDivider }
+                    NasdaqStripCell(glance: nasdaq, density: density)
                 }
             }
 
@@ -62,6 +66,12 @@ struct DesklineStripView: View {
         }
         .opacity(settings.hudOpacity)
         .accessibilityLabel(accessibilityText(segments))
+    }
+
+    private var stripDivider: some View {
+        Text("·")
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(Color.hudAccent.opacity(0.55))
     }
 
     private func alertLevel(for snapshot: QuotaSnapshot, index: Int) -> AlertLevel {
@@ -203,6 +213,47 @@ struct ProviderStripCell: View {
         let bars = snapshot.allBarVMs.map { "\($0.label) \($0.usedText)/\($0.limitText)" }.joined(separator: ", ")
         if bars.isEmpty { return "\(snapshot.provider.displayName): unavailable" }
         return "\(snapshot.provider.displayName): \(bars)"
+    }
+}
+
+struct NasdaqStripCell: View {
+    let glance: NasdaqGlance
+    let density: DesklineStripDensity
+
+    private var tiltColor: Color {
+        switch glance.tilt {
+        case .bullish: return Color(red: 0.19, green: 0.82, blue: 0.35)
+        case .bearish: return .red
+        case .neutral: return .secondary
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: density == .compact ? 11 : 13, weight: .semibold))
+                .foregroundStyle(tiltColor)
+
+            if density == .expanded {
+                Text("NASDAQ")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            Text(glance.summary)
+                .font(.system(size: density == .compact ? 9 : 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(tiltColor)
+        }
+        .help(helpText)
+    }
+
+    private var helpText: String {
+        var text = "Watchlist: \(glance.up) up, \(glance.down) down, \(glance.flat) flat"
+        if let asOf = glance.asOf {
+            let fmt = RelativeDateTimeFormatter()
+            text += " — updated \(fmt.localizedString(for: asOf, relativeTo: Date()))"
+        }
+        return text
     }
 }
 

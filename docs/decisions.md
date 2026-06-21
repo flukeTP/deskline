@@ -82,6 +82,21 @@ Lightweight decision log for Deskline. Not a full ADR process — solo personal 
 
 ---
 
+## 2026-06-21 — Nasdaq module reads state.json (local-first), not the API
+
+**Decision:** The NASDAQ strip glance reads `~/Documents/project/personal/nasdaq-signal/alerts/state.json` directly (a `{ ticker: "up"|"down"|"flat" }` map), rather than calling nasdaq-signal's Next.js API routes.
+
+**Context:** nasdaq-signal runs locally (`npm run dev`) and is not deployed. Hitting `localhost:3000/api/signals` would require the dev server to be running — fragile for an always-on menu bar app. `state.json` is written by the background scorer (GitHub Actions commits it), so it is a free, dependency-free local source consistent with how Deskline already reads `~/.claude` / `~/.codex`.
+
+**Consequences:**
+
+- Glance reflects the last *synced* signals — it refreshes when `state.json` changes on disk (e.g. after `git pull`), not in real time. Acceptable for a glance.
+- Reloaded on the normal refresh timer (state.json changes rarely, so no FSEvents watcher — the existing FileWatcher only matches `.jsonl` anyway).
+- Path follows the dev-path convention from `MenuBarIcon`. A live localhost-API source and per-ticker expanded view are deferred (see ROADMAP).
+- Module is opt-in (`showNasdaqModule`, default off) so non-stock users are unaffected.
+
+---
+
 ## Reference — ai-usage-counter parser map
 
 | Provider | Source in ai-usage-counter | Data source |

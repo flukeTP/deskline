@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class QuotaCoordinator: ObservableObject {
     @Published private(set) var snapshots: [AIProvider: QuotaSnapshot] = [:]
+    @Published private(set) var nasdaqGlance: NasdaqGlance?
     @Published private(set) var authStates: [AIProvider: AuthState] = [:]
     @Published private(set) var isRefreshing = false
     @Published private(set) var lastRefreshedAt: Date?
@@ -151,7 +152,13 @@ final class QuotaCoordinator: ObservableObject {
         refreshTimer = timer
     }
 
+    func reloadNasdaqGlance() {
+        nasdaqGlance = DesklineSettings.shared.showNasdaqModule ? NasdaqStateReader.read() : nil
+    }
+
     private func refresh(enabled: [AIProvider]) async {
+        reloadNasdaqGlance()
+
         guard !enabled.isEmpty else {
             snapshots = [:]
             return

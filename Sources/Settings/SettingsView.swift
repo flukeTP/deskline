@@ -47,6 +47,18 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Modules") {
+                Toggle("Show NASDAQ glance", isOn: $settings.showNasdaqModule)
+                Text("Adds a stock-signal cell to the strip (▲ up / ▼ down) from nasdaq-signal's alerts/state.json. Updates when that file syncs.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if settings.showNasdaqModule && coordinator.nasdaqGlance == nil {
+                    Text("No data yet — make sure ~/Documents/project/personal/nasdaq-signal/alerts/state.json exists.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+
             if settings.hudVisible {
                 Section("Floating strip") {
                     Toggle("Lock position", isOn: $settings.hudPositionLocked)
@@ -155,6 +167,10 @@ struct SettingsView: View {
             if applied != newValue { launchAtLogin = applied }
         }
         .onAppear { launchAtLogin = LoginItem.isEnabled }
+        .onChange(of: settings.showNasdaqModule) { _, _ in
+            coordinator.reloadNasdaqGlance()
+            notifySettingsChanged()
+        }
         .onChange(of: settings.alertsEnabled) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.notificationsEnabled) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.warnThreshold) { _, newValue in
