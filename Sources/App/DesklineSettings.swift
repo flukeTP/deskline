@@ -170,10 +170,12 @@ final class DesklineSettings: ObservableObject {
 
     /// Resolve how hot a provider is, given the global thresholds. `nil` percent → none.
     func alertLevel(forPercentUsed percent: Double?) -> AlertLevel {
-        guard alertsEnabled, let percent else { return .none }
-        if percent >= criticalThreshold { return .critical }
-        if percent >= warnThreshold { return .warn }
-        return .none
+        AlertLevel.classify(
+            percent: percent,
+            enabled: alertsEnabled,
+            warn: warnThreshold,
+            critical: criticalThreshold
+        )
     }
 
     func resetHUDPosition() {

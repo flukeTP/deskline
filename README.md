@@ -45,14 +45,20 @@ swift build -c release
 .build/release/Deskline
 ```
 
-App bundle + DMG (v0.2.0):
+App bundle + DMG (v0.2.1):
 
 ```bash
 ./build.sh      # → build/Deskline.app
-./release.sh    # → build/Deskline-0.2.0.dmg
+./release.sh    # → build/Deskline-0.2.1.dmg
 ```
 
-Verify quota parsers without GUI:
+Run the unit tests (alert threshold + escalation logic):
+
+```bash
+swift test
+```
+
+Verify quota parsers + computed alert levels without GUI:
 
 ```bash
 .build/release/Deskline --verify

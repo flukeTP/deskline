@@ -31,6 +31,14 @@ enum AlertLevel {
         case .critical: return .red
         }
     }
+
+    /// Pure threshold classification — no UserDefaults/AppKit, so it is unit-testable.
+    static func classify(percent: Double?, enabled: Bool, warn: Double, critical: Double) -> AlertLevel {
+        guard enabled, let percent else { return .none }
+        if percent >= critical { return .critical }
+        if percent >= warn { return .warn }
+        return .none
+    }
 }
 
 enum HUDTheme {

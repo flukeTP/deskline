@@ -28,12 +28,19 @@ final class AlertEngine {
         for provider in settings.enabledProviderList {
             let pct = snapshots[provider]?.percentUsed
             let level = settings.alertLevel(forPercentUsed: pct)
-            let previous = lastLevel[provider] ?? .none
+            let escalated = AlertEngine.didEscalate(from: lastLevel[provider] ?? .none, to: level)
             lastLevel[provider] = level
 
-            guard settings.notificationsEnabled, level.rank > previous.rank else { continue }
+            guard escalated, settings.notificationsEnabled else { continue }
             notify(provider: provider, level: level, percent: pct)
         }
+    }
+
+    /// Pure escalation rule: fire only when crossing *up* to a higher level.
+    /// Same or lower level (cooling down, or steady-state) does not fire — that is the
+    /// fire-once + re-arm behavior, isolated here so it is unit-testable.
+    nonisolated static func didEscalate(from previous: AlertLevel, to current: AlertLevel) -> Bool {
+        current.rank > previous.rank
     }
 
     /// Forget remembered levels so the next evaluation can re-fire (e.g. settings changed).
