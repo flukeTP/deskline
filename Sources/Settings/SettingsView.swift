@@ -81,6 +81,10 @@ struct SettingsView: View {
                     Text("Pulse the provider on the strip at \(Int(settings.criticalThreshold))%.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Toggle("Send a macOS notification when crossed", isOn: $settings.notificationsEnabled)
+                    Text("Notifies once each time a provider crosses warn or critical, then re-arms after it drops back down. Requires running the built Deskline.app (not swift run).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Toggle("Preview alert styles on the strip", isOn: $settings.previewAlerts)
                     Text("Temporarily forces warn + critical styling so you can see them without waiting for real usage. Turns off on relaunch.")
                         .font(.caption)
@@ -134,6 +138,7 @@ struct SettingsView: View {
             coordinator.restartTimer(settings: settings)
         }
         .onChange(of: settings.alertsEnabled) { _, _ in notifySettingsChanged() }
+        .onChange(of: settings.notificationsEnabled) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.warnThreshold) { _, newValue in
             if settings.criticalThreshold < newValue { settings.criticalThreshold = newValue }
             notifySettingsChanged()

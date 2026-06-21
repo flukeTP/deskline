@@ -67,6 +67,11 @@ final class DesklineSettings: ObservableObject {
         didSet { persist() }
     }
 
+    /// Post a macOS notification when a provider crosses warn/critical.
+    @Published var notificationsEnabled: Bool {
+        didSet { persist() }
+    }
+
     /// Transient: force the strip to show warn/critical styling for a quick visual check.
     /// Not persisted — always off on launch.
     @Published var previewAlerts: Bool = false
@@ -87,6 +92,7 @@ final class DesklineSettings: ObservableObject {
     private let alertsEnabledKey = "alertsEnabled"
     private let warnThresholdKey = "warnThreshold"
     private let criticalThresholdKey = "criticalThreshold"
+    private let notificationsEnabledKey = "notificationsEnabled"
 
     private init() {
         hudOpacity = defaults.object(forKey: hudOpacityKey) as? Double ?? 0.92
@@ -118,6 +124,7 @@ final class DesklineSettings: ObservableObject {
         alertsEnabled = defaults.object(forKey: alertsEnabledKey) as? Bool ?? true
         warnThreshold = defaults.object(forKey: warnThresholdKey) as? Double ?? 80
         criticalThreshold = defaults.object(forKey: criticalThresholdKey) as? Double ?? 95
+        notificationsEnabled = defaults.object(forKey: notificationsEnabledKey) as? Bool ?? true
 
         if defaults.object(forKey: hudCustomXKey) != nil {
             hudCustomX = defaults.double(forKey: hudCustomXKey)
@@ -192,6 +199,7 @@ final class DesklineSettings: ObservableObject {
         defaults.set(alertsEnabled, forKey: alertsEnabledKey)
         defaults.set(warnThreshold, forKey: warnThresholdKey)
         defaults.set(criticalThreshold, forKey: criticalThresholdKey)
+        defaults.set(notificationsEnabled, forKey: notificationsEnabledKey)
         defaults.set(enabledProviderList.map(\.rawValue), forKey: enabledProvidersKey)
         if let hudCustomX, let hudCustomY {
             defaults.set(hudCustomX, forKey: hudCustomXKey)

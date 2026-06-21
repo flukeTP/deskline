@@ -14,10 +14,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var settings: DesklineSettings!
     private var coordinator: QuotaCoordinator!
+    private var alertEngine: AlertEngine!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = DesklineSettings.shared
         coordinator = QuotaCoordinator()
+        alertEngine = AlertEngine(settings: settings)
+        alertEngine.requestAuthorization()
 
         NSApp.setActivationPolicy(.accessory)
         setupEditMenu()
@@ -76,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
+            self.alertEngine.evaluate(snapshots: self.coordinator.snapshots)
             self.menubarPresenter.update(coordinator: self.coordinator, settings: self.settings)
             if self.slideDownController.isVisible, let button = self.statusItem.button {
                 self.slideDownController.refreshIfVisible(anchoredTo: button)
@@ -93,6 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func syncChrome() {
+        alertEngine.evaluate(snapshots: coordinator.snapshots)
         menubarPresenter.update(coordinator: coordinator, settings: settings)
         hudController.applySettings()
         if settings.showsFloatingHUD {

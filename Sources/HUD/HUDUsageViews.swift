@@ -16,6 +16,14 @@ enum AlertLevel {
 
     var isHot: Bool { self != .none }
 
+    var rank: Int {
+        switch self {
+        case .none: return 0
+        case .warn: return 1
+        case .critical: return 2
+        }
+    }
+
     var color: Color {
         switch self {
         case .none: return .clear
