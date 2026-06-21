@@ -28,12 +28,15 @@ HUD shows the higher of session vs weekly usage (or max quota lane for Antigravi
 
 ---
 
-## v1 — Threshold alerts
+## v1 — Threshold alerts ✅
 
-- [ ] Per-provider warning threshold (e.g. 80%)
-- [ ] macOS notification when crossed
-- [ ] Optional menu bar badge when any provider is hot
-- [ ] Snooze / cooldown so alerts do not spam
+- [x] Global warn (80%) + critical (95%) thresholds, adjustable in Settings
+- [x] Strip highlight: warn = colored outline, critical = pulsing outline
+- [x] macOS notification when crossed (built `.app` only — needs a bundle id)
+- [x] Menu bar badge dot when any provider is hot (orange warn / red critical)
+- [x] Fire-once + re-arm so alerts do not spam
+- [x] "Preview alert styles" toggle for a one-tap visual check
+- [ ] Per-provider thresholds (deferred — global is enough for solo use)
 
 ---
 

@@ -15,14 +15,48 @@ final class MenubarPresenter {
         }
 
         let glance = glanceText(for: source, coordinator: coordinator)
-        let title = " \(glance)"
-        guard title != lastTitle else { return }
-        lastTitle = title
+        let hot = hottestAlert(coordinator: coordinator, settings: settings)
+
+        // Cache on glance + badge level so the dot updates when a provider heats up/cools down.
+        let cacheKey = " \(glance)|\(hot.level.rank)"
+        guard cacheKey != lastTitle else { return }
+        lastTitle = cacheKey
 
         button.image = MenuBarIcon.load()
         button.image?.size = NSSize(width: 16, height: 16)
-        button.title = title
-        button.toolTip = "\(source.displayName) — \(glance) (click to expand)"
+        button.attributedTitle = menubarTitle(glance: glance, level: hot.level)
+        if hot.level.isHot, let provider = hot.provider {
+            let label = hot.level == .critical ? "critical" : "high"
+            button.toolTip = "\(provider.displayName) usage \(label) — \(source.displayName) \(glance) (click to expand)"
+        } else {
+            button.toolTip = "\(source.displayName) — \(glance) (click to expand)"
+        }
+    }
+
+    /// The most severe alert level across enabled providers, with the worst offender.
+    private func hottestAlert(coordinator: QuotaCoordinator, settings: DesklineSettings) -> (level: AlertLevel, provider: AIProvider?) {
+        var worst: AlertLevel = .none
+        var which: AIProvider?
+        for provider in settings.enabledProviderList {
+            let level = settings.alertLevel(forPercentUsed: coordinator.snapshots[provider]?.percentUsed)
+            if level.rank > worst.rank {
+                worst = level
+                which = provider
+            }
+        }
+        return (worst, which)
+    }
+
+    private func menubarTitle(glance: String, level: AlertLevel) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        if level.isHot {
+            let dotColor: NSColor = level == .critical ? .systemRed : .systemOrange
+            result.append(NSAttributedString(string: "● ", attributes: [.foregroundColor: dotColor]))
+        }
+        result.append(NSAttributedString(string: glance))
+        let full = NSRange(location: 0, length: result.length)
+        result.addAttribute(.font, value: NSFont.menuBarFont(ofSize: 0), range: full)
+        return result
     }
 
     private func applyFallback(button: NSButton, coordinator: QuotaCoordinator, settings: DesklineSettings) {
@@ -33,7 +67,8 @@ final class MenubarPresenter {
             return
         }
         button.image = MenuBarIcon.load()
-        button.title = " —"
+        button.attributedTitle = NSAttributedString(string: " —")
+        lastTitle = ""
     }
 
     private func glanceText(for provider: AIProvider, coordinator: QuotaCoordinator) -> String {
