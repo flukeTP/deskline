@@ -9,6 +9,7 @@ if CommandLine.arguments.contains("--verify") {
         let settings = DesklineSettings.shared
         print("=== Deskline quota verify ===")
         print("alerts: enabled=\(settings.alertsEnabled) warn=\(Int(settings.warnThreshold))% critical=\(Int(settings.criticalThreshold))% notify=\(settings.notificationsEnabled)")
+        print("loginItem: available=\(LoginItem.isAvailable) enabled=\(LoginItem.isEnabled)")
         for provider in AIProvider.allCases {
             let auth = coordinator.authStates[provider]?.rawValue ?? "unknown"
             if let snap = coordinator.snapshots[provider] {

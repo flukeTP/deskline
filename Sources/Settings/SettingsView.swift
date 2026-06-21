@@ -4,6 +4,8 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: DesklineSettings
     @EnvironmentObject private var coordinator: QuotaCoordinator
 
+    @State private var launchAtLogin = LoginItem.isEnabled
+
     var body: some View {
         Form {
             Section("Display") {
@@ -32,6 +34,17 @@ struct SettingsView: View {
                     : "Wide draggable bar on screen.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if LoginItem.isAvailable {
+                    Toggle("Open Deskline at login", isOn: $launchAtLogin)
+                    Text("Keeps the always-on glance and alerts running after every restart.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Open at login is available in the built Deskline.app (not swift run).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if settings.hudVisible {
@@ -137,6 +150,11 @@ struct SettingsView: View {
         .onChange(of: settings.refreshInterval) { _, _ in
             coordinator.restartTimer(settings: settings)
         }
+        .onChange(of: launchAtLogin) { _, newValue in
+            let applied = LoginItem.setEnabled(newValue)
+            if applied != newValue { launchAtLogin = applied }
+        }
+        .onAppear { launchAtLogin = LoginItem.isEnabled }
         .onChange(of: settings.alertsEnabled) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.notificationsEnabled) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.warnThreshold) { _, newValue in
