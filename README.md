@@ -90,7 +90,9 @@ Enable **Settings → Modules → Show Watchlist glance** to add a stock-signal 
 - A single **ambient glance** of your watchlist's net tilt: a directional arrow (↗ bullish / ↘ bearish / – neutral) plus **▲ up / ▼ down** counts, colored to match.
 - Reads the file directly — no server needed. Refreshes when `state.json` syncs (e.g. after the background scorer commits and you pull).
 
-The strip stays terse on purpose (mood at a glance). **Per-ticker detail and flip alerts are reserved for the planned desktop widget**, not the strip. Opt-in and off by default.
+The strip stays terse on purpose (mood at a glance). **Click the menu bar icon** to slide down the expanded panel, which adds a per-ticker breakdown (NVDA▲ AAPL• MSFT▼) and marks any ticker that flipped direction (⚡) since you last looked. Opt-in and off by default.
+
+(A WidgetKit version was evaluated and deferred — widget extensions are sandboxed and can't read the local files Deskline relies on; see `docs/decisions.md`.)
 
 ## Privacy (target)
 

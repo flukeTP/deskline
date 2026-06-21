@@ -156,6 +156,15 @@ final class QuotaCoordinator: ObservableObject {
         nasdaqGlance = DesklineSettings.shared.showNasdaqModule ? NasdaqStateReader.read() : nil
     }
 
+    /// Mark the current watchlist state as seen: clears flip highlights until the
+    /// next change. Called when the user opens the detail (slide-down) panel.
+    func acknowledgeWatchlist() {
+        guard DesklineSettings.shared.showNasdaqModule,
+              let raw = NasdaqStateReader.readRaw() else { return }
+        WatchlistBaseline.save(raw.map)
+        reloadNasdaqGlance()
+    }
+
     private func refresh(enabled: [AIProvider]) async {
         reloadNasdaqGlance()
 

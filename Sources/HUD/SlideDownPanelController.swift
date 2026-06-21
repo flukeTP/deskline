@@ -58,7 +58,12 @@ final class SlideDownPanelController {
         if panel.isVisible { close() } else { open(anchoredTo: button) }
     }
 
-    func close() { panel.orderOut(nil) }
+    func close() {
+        let wasVisible = panel.isVisible
+        panel.orderOut(nil)
+        // You've seen the detail — clear flip highlights for next time.
+        if wasVisible { coordinator.acknowledgeWatchlist() }
+    }
 
     func refreshIfVisible(anchoredTo button: NSStatusBarButton) {
         guard panel.isVisible else { return }

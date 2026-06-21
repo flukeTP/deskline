@@ -11,7 +11,12 @@ if CommandLine.arguments.contains("--verify") {
         print("alerts: enabled=\(settings.alertsEnabled) warn=\(Int(settings.warnThreshold))% critical=\(Int(settings.criticalThreshold))% notify=\(settings.notificationsEnabled)")
         print("loginItem: available=\(LoginItem.isAvailable) enabled=\(LoginItem.isEnabled)")
         if let nasdaq = NasdaqStateReader.read() {
-            print("nasdaq: \(nasdaq.summary) (up=\(nasdaq.up) down=\(nasdaq.down) flat=\(nasdaq.flat) tilt=\(nasdaq.tilt))")
+            print("nasdaq: \(nasdaq.summary) (up=\(nasdaq.up) down=\(nasdaq.down) flat=\(nasdaq.flat) tilt=\(nasdaq.tilt) flipped=\(nasdaq.flippedCount))")
+            let detail = nasdaq.tickers.map { t in
+                let arrow = t.direction == .up ? "▲" : (t.direction == .down ? "▼" : "•")
+                return "\(t.flipped ? "⚡" : "")\(t.symbol)\(arrow)"
+            }.joined(separator: " ")
+            print("  detail: \(detail)")
         } else {
             print("nasdaq: no state.json at \(NasdaqStateReader.defaultStatePath)")
         }

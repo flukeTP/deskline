@@ -40,13 +40,17 @@ HUD shows the higher of session vs weekly usage (or max quota lane for Antigravi
 
 ---
 
-## v2+ — WidgetKit
+## v2+ — WidgetKit (deferred — hits hard constraints)
 
+Verified blockers (see decisions.md 2026-06-21): widget extensions are sandboxed
+(can't read the home-dir files Deskline relies on), App Groups need a real Team ID
+(0 signing identities here), and SwiftPM can't build `.appex` (forces an Xcode
+migration). The detailed per-ticker/flip view that would have lived here is instead
+in the slide-down panel (unsandboxed, real-time, free).
+
+- [ ] Revisit only if a signed/distributable build is ever pursued
 - [ ] Desktop widget (small/medium) mirroring HUD data
-- [ ] **Watchlist widget: per-ticker signals + flip highlights** (the detailed,
-      acknowledgeable view — deliberately kept off the terse strip)
 - [ ] Lock Screen / Notification Center widget (if useful)
-- [ ] Shared data container between app and widget extension
 
 ---
 
@@ -57,9 +61,10 @@ HUD shows the higher of session vs weekly usage (or max quota lane for Antigravi
 - [x] Terse strip cell: directional arrow + ▲ up / ▼ down counts, colored by net tilt
 - [x] Settings toggle "Show Watchlist glance" + empty-state hint
 - [x] Unit tests for parse/tilt/summary
-- Design: strip = ambient mood glance only; per-ticker + flip detection belong
-  in the widget (state.json changes too rarely for a flip badge to be visible
-  on the strip). See decisions.md (2026-06-21).
+- [x] Per-ticker detail + flip highlights in the slide-down expanded panel
+      (flips persist via a baseline, clear when the panel closes)
+- Design: strip = ambient mood glance only; per-ticker + flip detection live in
+  the slide-down panel, not the strip and not a widget. See decisions.md (2026-06-21).
 - [ ] Later: live source via localhost API when the dev server is up
 
 ---

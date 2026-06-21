@@ -111,6 +111,26 @@ Lightweight decision log for Deskline. Not a full ADR process — solo personal 
 
 ---
 
+## 2026-06-21 — WidgetKit deferred (constraints); detail goes in the slide-down panel
+
+**Decision:** Per-ticker watchlist detail + flip highlighting live in the existing slide-down expanded panel, not a WidgetKit widget. WidgetKit is deferred indefinitely.
+
+**Context (verified on this machine):** `security find-identity` → **0 valid signing identities** (the app is ad-hoc signed); the app currently ships with **no entitlements / no sandbox**, which is exactly why it can read `~/.claude`, `~/.codex`, and `nasdaq-signal/alerts/state.json`. WidgetKit hits three hard walls:
+
+1. Widget extensions are **mandatorily sandboxed** → cannot read those home-dir files; data would have to be pushed through an App Group container.
+2. **App Groups need a real Team ID**; with no Apple Developer account / ad-hoc signing they don't work reliably — conflicts with the free-product constraint.
+3. SwiftPM **cannot build `.appex` targets** → would force a migration to an Xcode project, breaking `build.sh`/`release.sh`.
+
+Plus WidgetKit timeline budgets make it non-real-time anyway.
+
+**Consequences:**
+
+- The slide-down panel (part of the unsandboxed main app) already reads local files in real time and only appears on click — the right home for detail without any of the above costs.
+- Flip detection persists a baseline map in UserDefaults (`WatchlistBaseline`); flips clear when the panel closes (re-acknowledged).
+- Strip stays the terse mood glance. WidgetKit revisited only if a signed/distributable build is ever pursued.
+
+---
+
 ## Reference — ai-usage-counter parser map
 
 | Provider | Source in ai-usage-counter | Data source |

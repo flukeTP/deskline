@@ -16,6 +16,47 @@ struct DesklineStripView: View {
         let segments = settings.enabledProviderList.compactMap { coordinator.snapshots[$0] }
         let nasdaq = settings.showNasdaqModule ? coordinator.nasdaqGlance : nil
 
+        // Per-ticker watchlist detail belongs only in the expanded slide-down panel,
+        // never the always-on compact strip (keeps the strip a terse mood glance).
+        let showDetail = density == .expanded && (nasdaq?.tickers.isEmpty == false)
+
+        VStack(spacing: 0) {
+            stripRow(segments: segments, nasdaq: nasdaq)
+                .padding(.horizontal, density == .compact ? 12 : 16)
+                .padding(.vertical, density == .compact ? 7 : 10)
+
+            if showDetail, let nasdaq {
+                Rectangle().fill(Color.white.opacity(0.10)).frame(height: 0.5)
+                WatchlistDetailView(glance: nasdaq)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 9)
+            }
+        }
+        .background(Color.hudBg)
+        .overlay(alignment: .top) {
+            if showTopAccent {
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.hudAccent, Color.hudAccent.opacity(0.35)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 2)
+            }
+        }
+        .clipShape(StripShape(expanded: density == .expanded))
+        .overlay {
+            StripShape(expanded: density == .expanded)
+                .stroke(Color.white.opacity(0.14), lineWidth: 0.5)
+        }
+        .opacity(settings.hudOpacity)
+        .accessibilityLabel(accessibilityText(segments))
+    }
+
+    @ViewBuilder
+    private func stripRow(segments: [QuotaSnapshot], nasdaq: NasdaqGlance?) -> some View {
         HStack(spacing: density == .compact ? 10 : 14) {
             if segments.isEmpty && nasdaq == nil {
                 Text("No providers")
@@ -43,29 +84,6 @@ struct DesklineStripView: View {
                 ProgressView().controlSize(.small).scaleEffect(0.45).tint(Color.hudAccent)
             }
         }
-        .padding(.horizontal, density == .compact ? 12 : 16)
-        .padding(.vertical, density == .compact ? 7 : 10)
-        .background(Color.hudBg)
-        .overlay(alignment: .top) {
-            if showTopAccent {
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.hudAccent, Color.hudAccent.opacity(0.35)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(height: 2)
-            }
-        }
-        .clipShape(StripShape(expanded: density == .expanded))
-        .overlay {
-            StripShape(expanded: density == .expanded)
-                .stroke(Color.white.opacity(0.14), lineWidth: 0.5)
-        }
-        .opacity(settings.hudOpacity)
-        .accessibilityLabel(accessibilityText(segments))
     }
 
     private var stripDivider: some View {
@@ -263,6 +281,86 @@ struct NasdaqStripCell: View {
             text += " — updated \(fmt.localizedString(for: asOf, relativeTo: Date()))"
         }
         return text
+    }
+}
+
+/// Per-ticker watchlist breakdown shown under the strip in the expanded slide-down panel.
+/// Flipped tickers (changed since last seen) are pulled to the front and marked.
+struct WatchlistDetailView: View {
+    let glance: NasdaqGlance
+
+    private let columns = [GridItem(.adaptive(minimum: 64), spacing: 8, alignment: .leading)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Text("WATCHLIST")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.white.opacity(0.5))
+                if glance.flippedCount > 0 {
+                    Text("⚡\(glance.flippedCount) flipped")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Color.hudAccent)
+                }
+                Spacer()
+                if let asOf = glance.asOf {
+                    Text(RelativeDateTimeFormatter().localizedString(for: asOf, relativeTo: Date()))
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.white.opacity(0.4))
+                }
+            }
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 5) {
+                ForEach(glance.tickers) { ticker in
+                    TickerChip(ticker: ticker)
+                }
+            }
+        }
+        .frame(minWidth: 220, alignment: .leading)
+    }
+}
+
+private struct TickerChip: View {
+    let ticker: TickerSignal
+
+    private var color: Color {
+        switch ticker.direction {
+        case .up: return Color(red: 0.19, green: 0.82, blue: 0.35)
+        case .down: return .red
+        case .flat: return Color.white.opacity(0.5)
+        }
+    }
+
+    private var arrow: String {
+        switch ticker.direction {
+        case .up: return "▲"
+        case .down: return "▼"
+        case .flat: return "•"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if ticker.flipped {
+                Text("⚡")
+                    .font(.system(size: 8))
+                    .foregroundStyle(Color.hudAccent)
+            }
+            Text(ticker.symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white)
+            Text(arrow)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(
+            Capsule().fill(ticker.flipped ? Color.hudAccent.opacity(0.16) : Color.white.opacity(0.06))
+        )
+        .overlay(
+            Capsule().stroke(ticker.flipped ? Color.hudAccent.opacity(0.6) : Color.clear, lineWidth: 0.5)
+        )
     }
 }
 

@@ -41,4 +41,32 @@ final class NasdaqGlanceTests: XCTestCase {
         let glance = NasdaqGlance.from(stateMap: ["A": "flat", "B": "flat"], asOf: nil)
         XCTAssertEqual(glance?.summary, "2•")
     }
+
+    func testPerTickerCountMatchesMap() {
+        let glance = NasdaqGlance.from(stateMap: ["NVDA": "up", "AAPL": "flat", "MSFT": "down"], asOf: nil)
+        XCTAssertEqual(glance?.tickers.count, 3)
+        XCTAssertEqual(glance?.tickers.first(where: { $0.symbol == "NVDA" })?.direction, .up)
+    }
+
+    func testNoFlipWithoutBaseline() {
+        let glance = NasdaqGlance.from(stateMap: ["NVDA": "up"], baseline: [:], asOf: nil)
+        XCTAssertEqual(glance?.flippedCount, 0)
+    }
+
+    func testFlipDetectedWhenDirectionChanges() {
+        let glance = NasdaqGlance.from(
+            stateMap: ["NVDA": "down", "AAPL": "up"],
+            baseline: ["NVDA": "up", "AAPL": "up"], // NVDA up->down, AAPL unchanged
+            asOf: nil
+        )
+        XCTAssertEqual(glance?.flippedCount, 1)
+        XCTAssertEqual(glance?.tickers.first?.symbol, "NVDA") // flipped pulled to front
+        XCTAssertTrue(glance?.tickers.first?.flipped ?? false)
+    }
+
+    func testNewTickerNotCountedAsFlip() {
+        // A symbol absent from baseline is new, not a flip.
+        let glance = NasdaqGlance.from(stateMap: ["TSM": "up"], baseline: ["NVDA": "up"], asOf: nil)
+        XCTAssertEqual(glance?.flippedCount, 0)
+    }
 }
