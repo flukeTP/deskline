@@ -36,6 +36,20 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable, Hashable {
     var supportsLocalQuota: Bool {
         self == .claude || self == .codex
     }
+
+    var sessionBarLabel: String {
+        switch self {
+        case .cursor: return "Plan Usage"
+        default: return "Current Session"
+        }
+    }
+
+    var weeklyBarLabel: String {
+        switch self {
+        case .cursor: return "API Usage"
+        default: return "Weekly"
+        }
+    }
 }
 
 enum QuotaSource: String, Codable, Sendable {
@@ -47,6 +61,7 @@ enum QuotaSource: String, Codable, Sendable {
 struct QuotaSnapshot: Sendable, Identifiable {
     let provider: AIProvider
     var percentUsed: Double?
+    var usage: ProviderUsage?
     var source: QuotaSource
     var detail: String?
     var lastUpdated: Date
@@ -62,6 +77,7 @@ struct QuotaSnapshot: Sendable, Identifiable {
         QuotaSnapshot(
             provider: provider,
             percentUsed: nil,
+            usage: nil,
             source: .unavailable,
             detail: detail,
             lastUpdated: Date()
@@ -72,6 +88,7 @@ struct QuotaSnapshot: Sendable, Identifiable {
         QuotaSnapshot(
             provider: provider,
             percentUsed: usage.glancePct,
+            usage: usage,
             source: .api,
             detail: usage.planName,
             lastUpdated: usage.fetchedAt
@@ -82,6 +99,7 @@ struct QuotaSnapshot: Sendable, Identifiable {
         QuotaSnapshot(
             provider: provider,
             percentUsed: usage.glancePct,
+            usage: usage,
             source: .local,
             detail: detail,
             lastUpdated: usage.fetchedAt

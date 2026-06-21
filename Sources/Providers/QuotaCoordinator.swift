@@ -116,6 +116,7 @@ final class QuotaCoordinator: ObservableObject {
         uiTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.uiTick = Date()
+                NotificationCenter.default.post(name: .desklineMenubarTick, object: nil)
             }
         }
     }
@@ -176,6 +177,7 @@ final class QuotaCoordinator: ObservableObject {
                 next[snapshot.provider] = snapshot
             }
             snapshots = next
+            NotificationCenter.default.post(name: .desklineQuotaDidChange, object: nil)
         }
     }
 }

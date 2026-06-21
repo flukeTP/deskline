@@ -1,5 +1,30 @@
 import Foundation
 
+enum ClaudeLocalUsage {
+    /// Build quota from ~/.claude/projects JSONL — same source as ai-usage-counter.
+    static func providerUsage(from data: UsageData, settings: DesklineSettings = .shared) -> ProviderUsage? {
+        let sessionLimit = settings.effectiveClaudeSessionLimit(detected: data.detectedSessionLimit)
+        let weeklyLimit = settings.effectiveClaudeWeeklyLimit(detected: data.detectedWeeklyLimit)
+        let hasData = data.totalSessions > 0 || data.currentBlock != nil || data.weeklyBlock.tokens > 0
+        guard hasData else { return nil }
+
+        var usage = ProviderUsage(fetchedAt: data.lastUpdated)
+
+        if let block = data.currentBlock, block.isActive {
+            usage.sessionPct = min(Double(block.tokens) / Double(sessionLimit) * 100, 100)
+            usage.sessionResetAt = block.resetTime
+        }
+
+        if data.weeklyBlock.tokens > 0 {
+            usage.weeklyPct = min(Double(data.weeklyBlock.tokens) / Double(weeklyLimit) * 100, 100)
+            usage.weeklyResetAt = Date().addingTimeInterval(data.weeklyBlock.timeUntilReset)
+        }
+
+        guard usage.sessionPct != nil || usage.weeklyPct != nil else { return nil }
+        return usage
+    }
+}
+
 @MainActor
 protocol DesklineQuotaProvider: AnyObject {
     var provider: AIProvider { get }
@@ -8,25 +33,6 @@ protocol DesklineQuotaProvider: AnyObject {
     func presentInAppLogin(onComplete: @escaping @MainActor () -> Void)
     func signOut() async
     func fetchQuota() async -> QuotaSnapshot
-}
-
-enum ClaudeLocalUsage {
-    static func providerUsage(from data: UsageData) -> ProviderUsage? {
-        let sessionLimit = max(1, data.detectedSessionLimit)
-        let weeklyLimit = max(1, data.detectedWeeklyLimit)
-        let hasData = data.totalSessions > 0 || data.currentBlock != nil || data.weeklyBlock.tokens > 0
-        guard hasData else { return nil }
-
-        var usage = ProviderUsage(fetchedAt: Date())
-        if let block = data.currentBlock, block.isActive {
-            usage.sessionPct = min(Double(block.tokens) / Double(sessionLimit) * 100, 100)
-        }
-        if data.weeklyBlock.tokens > 0 {
-            usage.weeklyPct = min(Double(data.weeklyBlock.tokens) / Double(weeklyLimit) * 100, 100)
-        }
-        guard usage.glancePct != nil else { return nil }
-        return usage
-    }
 }
 
 @MainActor
@@ -54,18 +60,17 @@ final class ClaudeQuotaProvider: DesklineQuotaProvider {
         let data = await ClaudeUsageParser.parse()
         let local = ClaudeLocalUsage.providerUsage(from: data)
 
+        // Claude Code local files are the source of truth for limits (ai-usage-counter menubar behavior).
+        if let local {
+            return .fromLocal(.claude, usage: local, detail: "Claude Code")
+        }
+
         switch await engine.fetchUsage() {
         case .success(let api):
             return .fromAPI(.claude, usage: api)
         case .authExpired:
-            if let local {
-                return .fromLocal(.claude, usage: local, detail: "Claude Code local estimate")
-            }
-            return .unavailable(.claude, detail: "Sign in or use Claude Code")
+            return .unavailable(.claude, detail: "No Claude Code usage data")
         case .failure:
-            if let local {
-                return .fromLocal(.claude, usage: local, detail: "Claude Code local estimate")
-            }
             return .unavailable(.claude, detail: "No Claude Code usage data")
         }
     }

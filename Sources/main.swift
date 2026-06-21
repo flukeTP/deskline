@@ -40,7 +40,7 @@ if CommandLine.arguments.contains("--verify") {
     NSApplication.shared.run()
 } else {
     let app = NSApplication.shared
-    let delegate = AppDelegate()
+    let delegate = MainActor.assumeIsolated { AppDelegate() }
     app.delegate = delegate
     app.run()
 }

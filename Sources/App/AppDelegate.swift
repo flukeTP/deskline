@@ -1,11 +1,16 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var hudController: HUDPanelController!
+    private var slideDownController: SlideDownPanelController!
+    private var menubarPresenter = MenubarPresenter()
     private var settingsWindow: NSWindow?
     private var settingsObserver: NSObjectProtocol?
+    private var coordinatorObserver: NSObjectProtocol?
+    private var menubarTickObserver: NSObjectProtocol?
 
     private var settings: DesklineSettings!
     private var coordinator: QuotaCoordinator!
@@ -18,50 +23,121 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupEditMenu()
         setupStatusItem()
         setupHUD()
-        setupSettingsObserver()
+        setupSlideDown()
+        setupObservers()
         coordinator.start(settings: settings)
+        syncChrome()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         coordinator.stop()
-        if let observer = settingsObserver {
+        slideDownController.teardown()
+        for observer in [settingsObserver, coordinatorObserver, menubarTickObserver].compactMap({ $0 }) {
             NotificationCenter.default.removeObserver(observer)
         }
     }
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "menubar.dock.rectangle", accessibilityDescription: "Deskline")
-            button.image?.size = NSSize(width: 14, height: 14)
-        }
+        menubarPresenter.statusItem = statusItem
 
-        let menu = NSMenu()
-        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
-        menu.addItem(.separator())
-        menu.addItem(withTitle: settings.hudVisible ? "Hide HUD" : "Show HUD", action: #selector(toggleHUD), keyEquivalent: "h")
-        menu.addItem(withTitle: "Refresh Now", action: #selector(refreshNow), keyEquivalent: "r")
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Deskline", action: #selector(quit), keyEquivalent: "q")
-        statusItem.menu = menu
+        guard let button = statusItem.button else { return }
+        button.image = MenuBarIcon.load()
+        button.image?.size = NSSize(width: 18, height: 18)
+        button.title = " —"
+        button.action = #selector(statusBarClicked(_:))
+        button.target = self
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
     private func setupHUD() {
         hudController = HUDPanelController(coordinator: coordinator, settings: settings)
-        if settings.hudVisible {
+        if settings.showsFloatingHUD {
             hudController.show()
         }
     }
 
-    private func setupSettingsObserver() {
+    private func setupSlideDown() {
+        slideDownController = SlideDownPanelController(coordinator: coordinator, settings: settings)
+    }
+
+    private func setupObservers() {
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .desklineSettingsDidChange,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.hudController.applySettings()
-            self?.syncHUDMenuTitle()
+            self?.syncChrome()
         }
+
+        coordinatorObserver = NotificationCenter.default.addObserver(
+            forName: .desklineQuotaDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.menubarPresenter.update(coordinator: self.coordinator, settings: self.settings)
+            if self.slideDownController.isVisible, let button = self.statusItem.button {
+                self.slideDownController.refreshIfVisible(anchoredTo: button)
+            }
+        }
+
+        menubarTickObserver = NotificationCenter.default.addObserver(
+            forName: .desklineMenubarTick,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.menubarPresenter.update(coordinator: self.coordinator, settings: self.settings)
+        }
+    }
+
+    private func syncChrome() {
+        menubarPresenter.update(coordinator: coordinator, settings: settings)
+        hudController.applySettings()
+        if settings.showsFloatingHUD {
+            hudController.show()
+        } else {
+            hudController.hide()
+            slideDownController.close()
+        }
+    }
+
+    @objc private func statusBarClicked(_ sender: NSStatusBarButton) {
+        let event = NSApp.currentEvent
+        let isRightClick = event?.type == .rightMouseUp
+            || event?.modifierFlags.contains(.control) == true
+
+        if isRightClick {
+            buildContextMenu().popUp(
+                positioning: nil,
+                at: NSPoint(x: 0, y: sender.bounds.height + 4),
+                in: sender
+            )
+            return
+        }
+
+        switch settings.displayMode {
+        case .deskline:
+            slideDownController.toggle(anchoredTo: sender)
+        case .detailedBar:
+            hudController.resetPosition()
+            hudController.show()
+        }
+    }
+
+    private func buildContextMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        menu.addItem(withTitle: "Refresh Now", action: #selector(refreshNow), keyEquivalent: "r")
+        menu.addItem(
+            withTitle: settings.hudVisible ? "Hide Floating Strip" : "Show Floating Strip",
+            action: #selector(toggleFloatingHUD),
+            keyEquivalent: "h"
+        )
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit Deskline", action: #selector(quit), keyEquivalent: "q")
+        return menu
     }
 
     private func setupEditMenu() {
@@ -80,6 +156,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
+        slideDownController.close()
         if let settingsWindow, settingsWindow.isVisible {
             settingsWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -95,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: hosting)
         window.title = "Deskline Settings"
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 380, height: 460))
+        window.setContentSize(NSSize(width: 420, height: 680))
         window.center()
         window.isReleasedWhenClosed = false
         settingsWindow = window
@@ -104,10 +181,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    @objc private func toggleHUD() {
+    @objc private func toggleFloatingHUD() {
         settings.hudVisible.toggle()
-        hudController.applySettings()
-        syncHUDMenuTitle()
+        syncChrome()
     }
 
     @objc private func refreshNow() {
@@ -119,13 +195,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func quit() {
         NSApp.terminate(nil)
     }
-
-    private func syncHUDMenuTitle() {
-        guard let menu = statusItem.menu, menu.items.count > 2 else { return }
-        menu.items[2].title = settings.hudVisible ? "Hide HUD" : "Show HUD"
-    }
 }
 
 extension Notification.Name {
     static let desklineSettingsDidChange = Notification.Name("desklineSettingsDidChange")
+    static let desklineQuotaDidChange = Notification.Name("desklineQuotaDidChange")
+    static let desklineMenubarTick = Notification.Name("desklineMenubarTick")
 }

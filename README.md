@@ -1,10 +1,10 @@
 # Deskline
 
-Always-on-top HUD bar for glancing at AI provider quotas on macOS.
+Always-on-top quota glance for macOS — a **thin Deskline strip**, not a popup clone of ai-usage-counter.
 
-Deskline is a personal menu bar app that keeps a slim floating strip on screen — **Claude · Codex · Cursor · Gemini · Antigravity** — so you can see usage without opening each provider's settings page.
+Deskline keeps a slim floating strip on screen — **Claude · Codex · Cursor · Gemini · Antigravity** — plus a minimal menu bar icon and one glance %. Click the menu bar icon to slide down an expanded strip (orange accent, no arrow popup).
 
-This repo is intentionally separate from [ai-usage-counter](https://github.com/lazymodthai/ai-usage-counter). That app is a rich popup monitor; Deskline optimizes for **persistent glanceability**.
+This repo is intentionally separate from [ai-usage-counter](https://github.com/lazymodthai/ai-usage-counter). That app is a rich popup monitor; Deskline optimizes for **persistent thin-strip glanceability**.
 
 ## MVP status
 
@@ -55,14 +55,12 @@ Verify quota parsers without GUI:
 .build/release/Deskline --verify
 ```
 
-Look for the **Deskline** icon in the menu bar. The HUD appears centered near the top of the main screen.
+Look for the **Deskline** icon in the menu bar (`61%` glance). The floating strip appears centered near the top of the main screen by default. **Click** the menu bar icon for a slide-down expanded strip.
 
 ## Menu bar
 
-- **Settings…** — opacity, click-through, enabled providers, refresh interval
-- **Hide / Show HUD**
-- **Refresh Now**
-- **Quit**
+- **Click** — toggle slide-down strip (Deskline mode) or reset/show detailed bar
+- **Right-click** — Settings, Refresh, Hide/Show floating strip, Quit
 
 ## Privacy (target)
 

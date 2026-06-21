@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="Deskline"
-VERSION="0.2.0"
+VERSION="0.2.1"
 BUILD_DIR="build"
 APP_PATH="${BUILD_DIR}/${APP_NAME}.app"
 DMG_NAME="Deskline-${VERSION}.dmg"

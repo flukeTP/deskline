@@ -4,7 +4,7 @@ set -euo pipefail
 APP_NAME="Deskline"
 BINARY_NAME="Deskline"
 BUNDLE_ID="com.flukeTP.deskline"
-VERSION="0.2.0"
+VERSION="0.2.1"
 BUILD_DIR="build"
 APP_PATH="${BUILD_DIR}/${APP_NAME}.app"
 ICON_SRC="icon.png"
@@ -85,6 +85,16 @@ cat > "${APP_PATH}/Contents/Info.plist" << PLIST
 PLIST
 
 printf "APPL????" > "${APP_PATH}/Contents/PkgInfo"
+
+if [ -d "Sources/Resources" ]; then
+  cp -R Sources/Resources/. "${APP_PATH}/Contents/Resources/"
+fi
+
+if command -v rsvg-convert >/dev/null 2>&1; then
+  rsvg-convert -w 18 -h 18 Sources/Resources/menubar-icon.svg -o "${APP_PATH}/Contents/Resources/menubar-icon.png" 2>/dev/null || true
+  rsvg-convert -w 36 -h 36 Sources/Resources/menubar-icon.svg -o "${APP_PATH}/Contents/Resources/menubar-icon@2x.png" 2>/dev/null || true
+fi
+
 codesign --force --deep --sign - "${APP_PATH}" 2>/dev/null || true
 touch "${APP_PATH}"
 

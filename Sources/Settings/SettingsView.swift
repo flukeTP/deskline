@@ -6,28 +6,57 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("HUD") {
-                Toggle("Show HUD bar", isOn: $settings.hudVisible)
-                Toggle("Lock position", isOn: $settings.hudPositionLocked)
-                Toggle("Click-through (ignore mouse)", isOn: $settings.clickThrough)
-                Slider(value: $settings.hudOpacity, in: 0.35...1.0) {
-                    Text("Opacity")
+            Section("Display") {
+                Picker("Mode", selection: $settings.displayMode) {
+                    ForEach(DesklineDisplayMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
                 }
-                Text("\(Int(settings.hudOpacity * 100))%")
+                Text(settings.displayMode.detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Button("Reset HUD position (top center)") {
-                    settings.resetHUDPosition()
-                    notifySettingsChanged()
+
+                Picker("Menu bar provider", selection: $settings.menubarSource) {
+                    ForEach(settings.enabledProviderList) { provider in
+                        Text(provider.displayName).tag(provider)
+                    }
                 }
-                if settings.clickThrough {
-                    Text("Click-through disables dragging. Turn off to move the HUD.")
+                .disabled(settings.enabledProviderList.isEmpty)
+                Text("Menu bar shows the Deskline icon and a single glance % for this provider.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Show floating strip", isOn: $settings.hudVisible)
+                Text(settings.displayMode == .deskline
+                    ? "Thin draggable strip on screen. Click the menu bar icon for a slide-down expand."
+                    : "Wide draggable bar on screen.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if settings.hudVisible {
+                Section("Floating strip") {
+                    Toggle("Lock position", isOn: $settings.hudPositionLocked)
+                    Toggle("Click-through (ignore mouse)", isOn: $settings.clickThrough)
+                    Slider(value: $settings.hudOpacity, in: 0.35...1.0) {
+                        Text("Opacity")
+                    }
+                    Text("\(Int(settings.hudOpacity * 100))%")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                } else if !settings.hudPositionLocked {
-                    Text("Click and drag the HUD bar to move it anywhere on screen.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Button("Reset position (top center)") {
+                        settings.resetHUDPosition()
+                        notifySettingsChanged()
+                    }
+                    if settings.clickThrough {
+                        Text("Click-through disables dragging.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if !settings.hudPositionLocked {
+                        Text("Drag the floating bar to move it.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -41,7 +70,7 @@ struct SettingsView: View {
                 ForEach(AIProvider.allCases) { provider in
                     accountRow(for: provider)
                 }
-                Text("Sign in opens your default browser (Safari, Chrome, etc.). Use “Link in app” when Deskline needs API cookies for quota sync.")
+                Text("Sign in opens an in-app window so Deskline can capture session cookies for quota APIs.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -64,13 +93,18 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: 620)
+        .frame(width: 420, height: 700)
         .padding()
+        .onChange(of: settings.displayMode) { _, _ in notifySettingsChanged() }
+        .onChange(of: settings.menubarSource) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.hudOpacity) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.clickThrough) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.hudVisible) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.hudPositionLocked) { _, _ in notifySettingsChanged() }
-        .onChange(of: settings.enabledProviders) { _, _ in
+        .onChange(of: settings.enabledProviders) { _, newValue in
+            if !newValue.contains(settings.menubarSource), let first = settings.enabledProviderList.first {
+                settings.menubarSource = first
+            }
             notifySettingsChanged()
             coordinator.refreshNow(enabled: settings.enabledProviderList)
         }
@@ -99,13 +133,12 @@ struct SettingsView: View {
             }
             if provider.supportsWebLogin {
                 HStack {
-                    Button("Sign in (browser)…") {
+                    Button("Sign in…") {
                         coordinator.presentLogin(for: provider)
                     }
-                    Button("Link in app…") {
-                        coordinator.presentInAppLogin(for: provider)
+                    Button("Open in browser") {
+                        BrowserAuth.openLogin(for: provider)
                     }
-                    .help("Opens an in-app window to capture API session cookies")
                 }
             } else {
                 Text("Local files")
