@@ -66,6 +66,24 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Alerts") {
+                Toggle("Highlight provider when usage is high", isOn: $settings.alertsEnabled)
+                if settings.alertsEnabled {
+                    Slider(value: $settings.warnThreshold, in: 50...95, step: 5) {
+                        Text("Warn at")
+                    }
+                    Text("Outline the provider on the strip at \(Int(settings.warnThreshold))%.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Slider(value: $settings.criticalThreshold, in: 80...100, step: 5) {
+                        Text("Critical at")
+                    }
+                    Text("Pulse the provider on the strip at \(Int(settings.criticalThreshold))%.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Accounts") {
                 ForEach(AIProvider.allCases) { provider in
                     accountRow(for: provider)
@@ -110,6 +128,15 @@ struct SettingsView: View {
         }
         .onChange(of: settings.refreshInterval) { _, _ in
             coordinator.restartTimer(settings: settings)
+        }
+        .onChange(of: settings.alertsEnabled) { _, _ in notifySettingsChanged() }
+        .onChange(of: settings.warnThreshold) { _, newValue in
+            if settings.criticalThreshold < newValue { settings.criticalThreshold = newValue }
+            notifySettingsChanged()
+        }
+        .onChange(of: settings.criticalThreshold) { _, newValue in
+            if newValue < settings.warnThreshold { settings.warnThreshold = newValue }
+            notifySettingsChanged()
         }
     }
 

@@ -27,7 +27,11 @@ struct DesklineStripView: View {
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Color.hudAccent.opacity(0.55))
                     }
-                    ProviderStripCell(snapshot: snapshot, density: density)
+                    ProviderStripCell(
+                        snapshot: snapshot,
+                        density: density,
+                        alertLevel: settings.alertLevel(forPercentUsed: snapshot.percentUsed)
+                    )
                 }
             }
 
@@ -92,6 +96,9 @@ private struct StripShape: Shape {
 struct ProviderStripCell: View {
     let snapshot: QuotaSnapshot
     let density: DesklineStripDensity
+    var alertLevel: AlertLevel = .none
+
+    @State private var pulse = false
 
     private var sessionFraction: Double? {
         snapshot.usage?.sessionPct.map { min($0 / 100, 1) }
@@ -133,7 +140,36 @@ struct ProviderStripCell: View {
                     .foregroundStyle(pctColor)
             }
         }
+        .padding(.horizontal, alertLevel.isHot ? 5 : 0)
+        .padding(.vertical, alertLevel.isHot ? 2 : 0)
+        .background(alertChrome)
         .help(helpText)
+        .onAppear { startPulseIfNeeded() }
+        .onChange(of: alertLevel.isHot) { _, _ in startPulseIfNeeded() }
+    }
+
+    @ViewBuilder
+    private var alertChrome: some View {
+        if alertLevel.isHot {
+            let isCritical = alertLevel == .critical
+            Capsule()
+                .fill(alertLevel.color.opacity(isCritical ? 0.18 : 0.12))
+                .overlay {
+                    Capsule().stroke(alertLevel.color.opacity(isCritical ? 0.9 : 0.55), lineWidth: 1)
+                }
+                .opacity(isCritical ? (pulse ? 1.0 : 0.45) : 1.0)
+        }
+    }
+
+    private func startPulseIfNeeded() {
+        guard alertLevel == .critical else {
+            pulse = false
+            return
+        }
+        pulse = false
+        withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+            pulse = true
+        }
     }
 
     private var pctLabel: String? {

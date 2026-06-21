@@ -54,6 +54,19 @@ final class DesklineSettings: ObservableObject {
         didSet { persist() }
     }
 
+    /// Highlight a provider on the strip once usage crosses this percent.
+    @Published var alertsEnabled: Bool {
+        didSet { persist() }
+    }
+
+    @Published var warnThreshold: Double {
+        didSet { persist() }
+    }
+
+    @Published var criticalThreshold: Double {
+        didSet { persist() }
+    }
+
     private let defaults = UserDefaults.standard
     private let enabledProvidersKey = "enabledProviders"
     private let hudOpacityKey = "hudOpacity"
@@ -67,6 +80,9 @@ final class DesklineSettings: ObservableObject {
     private let claudeWeeklyTokenLimitKey = "weeklyTokenLimit"
     private let displayModeKey = "displayMode"
     private let menubarSourceKey = "menubarSource"
+    private let alertsEnabledKey = "alertsEnabled"
+    private let warnThresholdKey = "warnThreshold"
+    private let criticalThresholdKey = "criticalThreshold"
 
     private init() {
         hudOpacity = defaults.object(forKey: hudOpacityKey) as? Double ?? 0.92
@@ -94,6 +110,10 @@ final class DesklineSettings: ObservableObject {
             ? defaults.integer(forKey: claudeSessionTokenLimitKey) : 0
         claudeWeeklyTokenLimit = defaults.object(forKey: claudeWeeklyTokenLimitKey) != nil
             ? defaults.integer(forKey: claudeWeeklyTokenLimitKey) : 0
+
+        alertsEnabled = defaults.object(forKey: alertsEnabledKey) as? Bool ?? true
+        warnThreshold = defaults.object(forKey: warnThresholdKey) as? Double ?? 80
+        criticalThreshold = defaults.object(forKey: criticalThresholdKey) as? Double ?? 95
 
         if defaults.object(forKey: hudCustomXKey) != nil {
             hudCustomX = defaults.double(forKey: hudCustomXKey)
@@ -137,6 +157,14 @@ final class DesklineSettings: ObservableObject {
         hudVisible
     }
 
+    /// Resolve how hot a provider is, given the global thresholds. `nil` percent → none.
+    func alertLevel(forPercentUsed percent: Double?) -> AlertLevel {
+        guard alertsEnabled, let percent else { return .none }
+        if percent >= criticalThreshold { return .critical }
+        if percent >= warnThreshold { return .warn }
+        return .none
+    }
+
     func resetHUDPosition() {
         hudCustomX = nil
         hudCustomY = nil
@@ -157,6 +185,9 @@ final class DesklineSettings: ObservableObject {
         defaults.set(claudeWeeklyTokenLimit, forKey: claudeWeeklyTokenLimitKey)
         defaults.set(displayMode.rawValue, forKey: displayModeKey)
         defaults.set(menubarSource.rawValue, forKey: menubarSourceKey)
+        defaults.set(alertsEnabled, forKey: alertsEnabledKey)
+        defaults.set(warnThreshold, forKey: warnThresholdKey)
+        defaults.set(criticalThreshold, forKey: criticalThresholdKey)
         defaults.set(enabledProviderList.map(\.rawValue), forKey: enabledProvidersKey)
         if let hudCustomX, let hudCustomY {
             defaults.set(hudCustomX, forKey: hudCustomXKey)

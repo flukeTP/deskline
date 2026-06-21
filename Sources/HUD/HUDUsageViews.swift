@@ -9,6 +9,22 @@ extension Color {
     static let hudSonnetCyan = Color(red: 0.20, green: 0.68, blue: 0.90)
 }
 
+enum AlertLevel {
+    case none
+    case warn
+    case critical
+
+    var isHot: Bool { self != .none }
+
+    var color: Color {
+        switch self {
+        case .none: return .clear
+        case .warn: return .orange
+        case .critical: return .red
+        }
+    }
+}
+
 enum HUDTheme {
     static func tint(for provider: AIProvider) -> Color {
         switch provider {
