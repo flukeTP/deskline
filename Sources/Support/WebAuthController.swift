@@ -182,10 +182,23 @@ final class WebAuthController: NSObject, WKUIDelegate, WKNavigationDelegate, NSW
         Task { @MainActor in
             guard !self.closing else { return }
             if let url = self.webView?.url {
-                self.setStatus("Loaded \(url.host ?? "page") — complete sign-in if prompted.")
+                self.setStatus(self.statusForLoadedHost(url.host ?? "page"))
             }
             await self.evaluateLoginSuccess(trigger: "navigation")
         }
+    }
+
+    /// Google blocks OAuth inside embedded web views (blank "disallowed_useragent"
+    /// page), so be honest when the flow lands there instead of saying "complete sign-in".
+    private func statusForLoadedHost(_ host: String) -> String {
+        if host.contains("accounts.google.com") || host.contains("google.com") {
+            let base = "Google blocks app sign-in here (blank page). Try email/password sign-in instead of \"Continue with Google\""
+            if config.providerID.supportsLocalQuota {
+                return base + " — or just close this: \(config.providerID.displayName) usage still works from local files."
+            }
+            return base + "."
+        }
+        return "Loaded \(host) — complete sign-in if prompted."
     }
 
     nonisolated func webView(_ webView: WKWebView,
