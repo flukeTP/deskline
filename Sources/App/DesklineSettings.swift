@@ -37,6 +37,13 @@ final class DesklineSettings: ObservableObject {
         didSet { persist() }
     }
 
+    /// How often to poll *online* providers (Cursor/Gemini/Antigravity). Kept slower
+    /// than refreshInterval since local providers refresh from files + watchers and
+    /// hammering remote APIs risks rate limiting.
+    @Published var remoteRefreshInterval: TimeInterval {
+        didSet { persist() }
+    }
+
     /// 0 = auto-detect from Claude Code JSONL (shared key with ai-usage-counter).
     @Published var claudeSessionTokenLimit: Int {
         didSet { persist() }
@@ -90,6 +97,7 @@ final class DesklineSettings: ObservableObject {
     private let hudCustomXKey = "hudCustomX"
     private let hudCustomYKey = "hudCustomY"
     private let refreshIntervalKey = "refreshInterval"
+    private let remoteRefreshIntervalKey = "remoteRefreshInterval"
     private let claudeSessionTokenLimitKey = "sessionTokenLimit"
     private let claudeWeeklyTokenLimitKey = "weeklyTokenLimit"
     private let displayModeKey = "displayMode"
@@ -122,6 +130,7 @@ final class DesklineSettings: ObservableObject {
 
         hudPositionLocked = defaults.bool(forKey: hudPositionLockedKey)
         refreshInterval = max(30, defaults.object(forKey: refreshIntervalKey) as? TimeInterval ?? 60)
+        remoteRefreshInterval = max(120, defaults.object(forKey: remoteRefreshIntervalKey) as? TimeInterval ?? 300)
         claudeSessionTokenLimit = defaults.object(forKey: claudeSessionTokenLimitKey) != nil
             ? defaults.integer(forKey: claudeSessionTokenLimitKey) : 0
         claudeWeeklyTokenLimit = defaults.object(forKey: claudeWeeklyTokenLimitKey) != nil
@@ -201,6 +210,7 @@ final class DesklineSettings: ObservableObject {
         defaults.set(hudVisible, forKey: hudVisibleKey)
         defaults.set(hudPositionLocked, forKey: hudPositionLockedKey)
         defaults.set(refreshInterval, forKey: refreshIntervalKey)
+        defaults.set(remoteRefreshInterval, forKey: remoteRefreshIntervalKey)
         defaults.set(claudeSessionTokenLimit, forKey: claudeSessionTokenLimitKey)
         defaults.set(claudeWeeklyTokenLimit, forKey: claudeWeeklyTokenLimitKey)
         defaults.set(displayMode.rawValue, forKey: displayModeKey)

@@ -127,12 +127,26 @@ struct SettingsView: View {
             }
 
             Section("Refresh") {
-                Picker("Interval", selection: $settings.refreshInterval) {
+                Picker("Local (Claude/Codex)", selection: $settings.refreshInterval) {
                     Text("30 sec").tag(30.0)
                     Text("60 sec").tag(60.0)
                     Text("2 min").tag(120.0)
                     Text("5 min").tag(300.0)
                 }
+                Text("Local providers also refresh instantly when their usage files change.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Picker("Online (Cursor/Gemini/…)", selection: $settings.remoteRefreshInterval) {
+                    Text("2 min").tag(120.0)
+                    Text("5 min").tag(300.0)
+                    Text("10 min").tag(600.0)
+                    Text("15 min").tag(900.0)
+                }
+                Text("Polled less often to avoid hitting provider rate limits. Refresh now always updates all.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 if let label = coordinator.lastRefreshedLabel {
                     Text("Last refresh: \(label)")
                         .font(.caption)

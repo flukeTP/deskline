@@ -16,6 +16,7 @@ final class QuotaCoordinator: ObservableObject {
     private var claudeWatcher: FileWatcher?
     private var codexWatcher: FileWatcher?
     private var currentRefreshInterval: TimeInterval = 60
+    private var lastRemoteFetchedAt: Date?
 
     var refreshProgress: Double {
         guard let last = lastRefreshedAt, let next = nextRefreshAt else { return 0 }
@@ -57,7 +58,7 @@ final class QuotaCoordinator: ObservableObject {
         startUITimer()
         scheduleRefresh(interval: settings.refreshInterval)
         Task { await refreshAuthStates() }
-        Task { await refresh(enabled: settings.enabledProviderList) }
+        Task { await refresh(enabled: settings.enabledProviderList, forceRemote: true) }
     }
 
     func restartTimer(settings: DesklineSettings) {
@@ -75,11 +76,11 @@ final class QuotaCoordinator: ObservableObject {
     }
 
     func refreshNow(enabled: [AIProvider]) {
-        Task { await refresh(enabled: enabled) }
+        Task { await refresh(enabled: enabled, forceRemote: true) }
     }
 
     func refreshAndWait(enabled: [AIProvider]) async {
-        await refresh(enabled: enabled)
+        await refresh(enabled: enabled, forceRemote: true)
     }
 
     func refreshAuthStates() async {
@@ -93,7 +94,7 @@ final class QuotaCoordinator: ObservableObject {
         guard let reader = providers[provider] else { return }
         reader.presentLogin { [weak self] in
             Task { await self?.refreshAuthStates() }
-            Task { await self?.refresh(enabled: DesklineSettings.shared.enabledProviderList) }
+            Task { await self?.refresh(enabled: DesklineSettings.shared.enabledProviderList, forceRemote: true) }
         }
     }
 
@@ -101,7 +102,7 @@ final class QuotaCoordinator: ObservableObject {
         guard let reader = providers[provider] else { return }
         reader.presentInAppLogin { [weak self] in
             Task { await self?.refreshAuthStates() }
-            Task { await self?.refresh(enabled: DesklineSettings.shared.enabledProviderList) }
+            Task { await self?.refresh(enabled: DesklineSettings.shared.enabledProviderList, forceRemote: true) }
         }
     }
 
@@ -109,7 +110,7 @@ final class QuotaCoordinator: ObservableObject {
         guard let reader = providers[provider] else { return }
         await reader.signOut()
         authStates[provider] = .signedOut
-        await refresh(enabled: DesklineSettings.shared.enabledProviderList)
+        await refresh(enabled: DesklineSettings.shared.enabledProviderList, forceRemote: true)
     }
 
     private func startUITimer() {
@@ -152,6 +153,18 @@ final class QuotaCoordinator: ObservableObject {
         refreshTimer = timer
     }
 
+    /// Pure rule for whether online providers are due for a re-poll. Isolated for testing.
+    nonisolated static func remoteIsDue(
+        forceRemote: Bool,
+        lastRemoteFetchedAt: Date?,
+        now: Date,
+        interval: TimeInterval
+    ) -> Bool {
+        if forceRemote { return true }
+        guard let last = lastRemoteFetchedAt else { return true }
+        return now.timeIntervalSince(last) >= interval
+    }
+
     func reloadNasdaqGlance() {
         nasdaqGlance = DesklineSettings.shared.showNasdaqModule ? NasdaqStateReader.read() : nil
     }
@@ -165,11 +178,28 @@ final class QuotaCoordinator: ObservableObject {
         reloadNasdaqGlance()
     }
 
-    private func refresh(enabled: [AIProvider]) async {
+    /// `forceRemote` bypasses the remote throttle (used on launch, manual refresh, and
+    /// after sign-in/out). Otherwise online providers are only re-fetched once
+    /// `remoteRefreshInterval` has elapsed, while local (file-backed) providers always
+    /// refresh — they have no rate limit and are also driven by file watchers.
+    private func refresh(enabled: [AIProvider], forceRemote: Bool = false) async {
         reloadNasdaqGlance()
 
-        guard !enabled.isEmpty else {
-            snapshots = [:]
+        let enabledSet = Set(enabled)
+        // Carry over existing snapshots for still-enabled providers; drop disabled ones.
+        var merged = snapshots.filter { enabledSet.contains($0.key) }
+
+        let now = Date()
+        let remoteDue = QuotaCoordinator.remoteIsDue(
+            forceRemote: forceRemote,
+            lastRemoteFetchedAt: lastRemoteFetchedAt,
+            now: now,
+            interval: DesklineSettings.shared.remoteRefreshInterval
+        )
+        let toFetch = enabled.filter { $0.supportsLocalQuota || remoteDue }
+
+        guard !toFetch.isEmpty else {
+            snapshots = merged
             return
         }
 
@@ -181,19 +211,21 @@ final class QuotaCoordinator: ObservableObject {
         }
 
         await withTaskGroup(of: QuotaSnapshot.self) { group in
-            for provider in enabled {
+            for provider in toFetch {
                 guard let reader = providers[provider] else { continue }
                 group.addTask { @MainActor in
                     await reader.fetchQuota()
                 }
             }
-
-            var next: [AIProvider: QuotaSnapshot] = [:]
             for await snapshot in group {
-                next[snapshot.provider] = snapshot
+                merged[snapshot.provider] = snapshot
             }
-            snapshots = next
-            NotificationCenter.default.post(name: .desklineQuotaDidChange, object: nil)
         }
+
+        if remoteDue && toFetch.contains(where: { !$0.supportsLocalQuota }) {
+            lastRemoteFetchedAt = now
+        }
+        snapshots = merged
+        NotificationCenter.default.post(name: .desklineQuotaDidChange, object: nil)
     }
 }

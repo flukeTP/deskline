@@ -131,6 +131,20 @@ Plus WidgetKit timeline budgets make it non-real-time anyway.
 
 ---
 
+## 2026-06-21 — Split refresh: throttle online providers separately
+
+**Decision:** One refresh timer, but online providers (Cursor/Gemini/Antigravity) are throttled to a slower `remoteRefreshInterval` (default 5 min, min 2 min), while local providers (Claude/Codex) refresh every `refreshInterval` and on file-watcher events. `forceRemote` (launch, Refresh now, sign-in/out) bypasses the throttle.
+
+**Context:** Local quota comes from files (`~/.claude`, `~/.codex`) — no rate limit, and already event-driven. Online providers hit real endpoints; polling them every 30–60 s risks rate limiting / soft bans. Splitting the cadence keeps the glance fresh where it's free and gentle where it's not.
+
+**Consequences:**
+
+- `refresh(enabled:forceRemote:)` now *merges* results into existing snapshots (and prunes disabled) instead of replacing wholesale, so a local-only tick doesn't wipe remote data.
+- The throttle decision is a pure `QuotaCoordinator.remoteIsDue(...)` (unit-tested) keyed off `lastRemoteFetchedAt`.
+- Considered the live nasdaq-signal localhost API for fresher stock data — rejected: it needs the dev server running AND would require copying `signalSide`/`SIGNAL_THRESHOLD` into Swift (drift risk). `state.json` stays the source.
+
+---
+
 ## Reference — ai-usage-counter parser map
 
 | Provider | Source in ai-usage-counter | Data source |
