@@ -9,6 +9,13 @@ final class DesklineSettings: ObservableObject {
         didSet { persist() }
     }
 
+    /// Opacity of the slide-down panel shown when clicking the menu bar icon.
+    /// Separate from the always-on floating strip — it's summoned on demand, so it
+    /// usually wants to be more opaque.
+    @Published var slideDownOpacity: Double {
+        didSet { persist() }
+    }
+
     @Published var clickThrough: Bool {
         didSet { persist() }
     }
@@ -91,6 +98,7 @@ final class DesklineSettings: ObservableObject {
     private let defaults = UserDefaults.standard
     private let enabledProvidersKey = "enabledProviders"
     private let hudOpacityKey = "hudOpacity"
+    private let slideDownOpacityKey = "slideDownOpacity"
     private let clickThroughKey = "clickThrough"
     private let hudVisibleKey = "hudVisible"
     private let hudPositionLockedKey = "hudPositionLocked"
@@ -110,6 +118,7 @@ final class DesklineSettings: ObservableObject {
 
     private init() {
         hudOpacity = defaults.object(forKey: hudOpacityKey) as? Double ?? 0.92
+        slideDownOpacity = defaults.object(forKey: slideDownOpacityKey) as? Double ?? 1.0
         clickThrough = defaults.bool(forKey: clickThroughKey)
 
         let resolvedMode: DesklineDisplayMode
@@ -206,6 +215,7 @@ final class DesklineSettings: ObservableObject {
 
     private func persist() {
         defaults.set(hudOpacity, forKey: hudOpacityKey)
+        defaults.set(slideDownOpacity, forKey: slideDownOpacityKey)
         defaults.set(clickThrough, forKey: clickThroughKey)
         defaults.set(hudVisible, forKey: hudVisibleKey)
         defaults.set(hudPositionLocked, forKey: hudPositionLockedKey)

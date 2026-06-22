@@ -59,6 +59,17 @@ struct SettingsView: View {
                 }
             }
 
+            if settings.displayMode == .deskline {
+                Section("Slide-down panel") {
+                    Slider(value: $settings.slideDownOpacity, in: 0.35...1.0) {
+                        Text("Opacity")
+                    }
+                    Text("\(Int(settings.slideDownOpacity * 100))% — the panel shown when you click the menu bar icon.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             if settings.hudVisible {
                 Section("Floating strip") {
                     Toggle("Lock position", isOn: $settings.hudPositionLocked)
@@ -66,7 +77,7 @@ struct SettingsView: View {
                     Slider(value: $settings.hudOpacity, in: 0.35...1.0) {
                         Text("Opacity")
                     }
-                    Text("\(Int(settings.hudOpacity * 100))%")
+                    Text("\(Int(settings.hudOpacity * 100))% — the always-on floating strip.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Button("Reset position (top center)") {

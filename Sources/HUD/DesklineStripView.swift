@@ -51,7 +51,7 @@ struct DesklineStripView: View {
             StripShape(expanded: density == .expanded)
                 .stroke(Color.white.opacity(0.14), lineWidth: 0.5)
         }
-        .opacity(settings.hudOpacity)
+        .opacity(density == .compact ? settings.hudOpacity : settings.slideDownOpacity)
         .accessibilityLabel(accessibilityText(segments))
     }
 
