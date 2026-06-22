@@ -57,8 +57,13 @@ final class QuotaCoordinator: ObservableObject {
         startFileWatchers()
         startUITimer()
         scheduleRefresh(interval: settings.refreshInterval)
-        Task { await refreshAuthStates() }
-        Task { await refresh(enabled: settings.enabledProviderList, forceRemote: true) }
+        // Load persisted cookies from disk before checking auth, otherwise every
+        // provider reads empty and reports signed-out on a fresh launch.
+        Task {
+            await CookieWarmer.shared.warmUpAll()
+            await refreshAuthStates()
+            await refresh(enabled: settings.enabledProviderList, forceRemote: true)
+        }
     }
 
     func restartTimer(settings: DesklineSettings) {

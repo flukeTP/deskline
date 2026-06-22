@@ -216,13 +216,10 @@ struct SettingsView: View {
                 }
             }
             if provider.supportsWebLogin {
-                HStack {
-                    Button("Sign in…") {
-                        coordinator.presentLogin(for: provider)
-                    }
-                    Button("Open in browser") {
-                        BrowserAuth.openLogin(for: provider)
-                    }
+                // Only the in-app window can capture the session cookie. Signing in via the
+                // system browser uses a separate cookie jar, so it can't authenticate Deskline.
+                Button(auth == .signedIn ? "Re-sign in…" : "Sign in…") {
+                    coordinator.presentLogin(for: provider)
                 }
             } else {
                 Text("Local files")

@@ -3,6 +3,7 @@ import AppKit
 if CommandLine.arguments.contains("--verify") {
     Task { @MainActor in
         let coordinator = QuotaCoordinator()
+        await CookieWarmer.shared.warmUpAll()
         await coordinator.refreshAuthStates()
         await coordinator.refreshAndWait(enabled: AIProvider.allCases)
 
