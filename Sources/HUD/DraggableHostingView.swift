@@ -8,17 +8,16 @@ final class DraggableHostingView: NSHostingView<AnyView> {
     var onDragEnded: (() -> Void)?
 
     override func mouseDown(with event: NSEvent) {
-        window?.isMovableByWindowBackground = isDraggable
-        if isDraggable { onDragBegan?() }
-        super.mouseDown(with: event)
+        guard isDraggable, let window else {
+            super.mouseDown(with: event)
+            return
+        }
+        // performDrag takes over event tracking and moves the window until mouse-up,
+        // bypassing the SwiftUI subview hit-testing that blocks mouseDownCanMoveWindow.
+        onDragBegan?()
+        window.performDrag(with: event)
+        onDragEnded?()
     }
 
     override var mouseDownCanMoveWindow: Bool { isDraggable }
-
-    override func mouseUp(with event: NSEvent) {
-        super.mouseUp(with: event)
-        if isDraggable {
-            onDragEnded?()
-        }
-    }
 }
