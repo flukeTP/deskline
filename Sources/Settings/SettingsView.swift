@@ -5,6 +5,9 @@ struct SettingsView: View {
     @EnvironmentObject private var coordinator: QuotaCoordinator
 
     @State private var launchAtLogin = LoginItem.isEnabled
+    @State private var showClaudeKeySheet = false
+    @State private var claudeKeyInput = ""
+    @State private var claudeKeySaving = false
 
     var body: some View {
         Form {
@@ -171,6 +174,7 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 420, height: 700)
         .padding()
+        .sheet(isPresented: $showClaudeKeySheet) { claudeKeySheet }
         .onChange(of: settings.displayMode) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.menubarSource) { _, _ in notifySettingsChanged() }
         .onChange(of: settings.hudOpacity) { _, _ in notifySettingsChanged() }
@@ -229,14 +233,59 @@ struct SettingsView: View {
             if provider.supportsWebLogin {
                 // Only the in-app window can capture the session cookie. Signing in via the
                 // system browser uses a separate cookie jar, so it can't authenticate Deskline.
-                Button(auth == .signedIn ? "Re-sign in…" : "Sign in…") {
-                    coordinator.presentLogin(for: provider)
+                HStack {
+                    Button(auth == .signedIn ? "Re-sign in…" : "Sign in…") {
+                        coordinator.presentLogin(for: provider)
+                    }
+                    if provider == .claude {
+                        Button("Paste session key…") { showClaudeKeySheet = true }
+                    }
+                }
+                if provider == .claude {
+                    Text("Google sign-in is blocked inside apps. To get exact claude.ai numbers, paste your sessionKey cookie instead.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             } else {
                 Text("Local files")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+
+    private var claudeKeySheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Paste Claude session key")
+                .font(.headline)
+            Text("In your browser, open claude.ai → DevTools → Application → Cookies → claude.ai → copy the value of \"sessionKey\" and paste it here. It stays on your Mac.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextField("sessionKey value (sk-ant-sid…)", text: $claudeKeyInput, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...4)
+            HStack {
+                Spacer()
+                Button("Cancel") { showClaudeKeySheet = false; claudeKeyInput = "" }
+                Button("Save") { saveClaudeKey() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(claudeKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || claudeKeySaving)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
+    }
+
+    private func saveClaudeKey() {
+        claudeKeySaving = true
+        let value = claudeKeyInput
+        Task {
+            _ = await ClaudeAuthInjector.setSessionKey(value)
+            await coordinator.refreshAuthStates()
+            coordinator.refreshNow(enabled: settings.enabledProviderList)
+            claudeKeySaving = false
+            claudeKeyInput = ""
+            showClaudeKeySheet = false
         }
     }
 
