@@ -74,14 +74,17 @@ final class MenubarPresenter {
     private func glanceText(for provider: AIProvider, coordinator: QuotaCoordinator) -> String {
         guard let snap = coordinator.snapshots[provider], let usage = snap.usage else { return "—" }
 
-        // When a session is actually maxed, the reset countdown is the useful thing.
         if usage.sessionAtLimit, let reset = usage.sessionResetAt, reset > Date() {
             return UsageFormatters.formatSessionCountdown(reset.timeIntervalSinceNow)
         }
-        // Otherwise show session and weekly distinctly ("S3 W21") — a single max() number
-        // hid that weekly doesn't reset with the session.
-        if let dual = usage.dualLabel {
-            return dual
+        if let pct = usage.sessionPct {
+            return String(format: "%.0f%%", pct)
+        }
+        if usage.weeklyAtLimit, let reset = usage.weeklyResetAt, reset > Date() {
+            return UsageFormatters.formatResetClock(reset)
+        }
+        if let pct = usage.weeklyPct {
+            return String(format: "%.0f%%", pct)
         }
         if let pct = snap.percentUsed {
             return String(format: "%.0f%%", pct)

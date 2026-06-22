@@ -25,21 +25,6 @@ struct ProviderUsage: Sendable, Codable {
         }
         return nil
     }
-
-    /// Session and weekly shown as two distinct numbers ("S3 W21"). A single max()
-    /// number hid that weekly doesn't reset with the session — after a session reset
-    /// the glance still looked high because it was actually showing weekly.
-    var dualLabel: String? {
-        func fmt(_ v: Double) -> String { String(format: "%.0f", v) }
-        switch (sessionPct, weeklyPct) {
-        case let (s?, w?): return "S\(fmt(s)) W\(fmt(w))"
-        case let (s?, nil): return "S\(fmt(s))"
-        case let (nil, w?): return "W\(fmt(w))"
-        case (nil, nil):
-            if let m = quotaLanes?.map(\.pct).max() { return "\(fmt(m))%" }
-            return nil
-        }
-    }
 }
 
 struct ProviderQuotaLane: Sendable, Codable, Identifiable {

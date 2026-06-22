@@ -219,13 +219,18 @@ struct ProviderStripCell: View {
             let api = lanes[1].pct
             return "\(Int(total))|\(Int(auto))|\(Int(api))"
         }
-        if usage.sessionPct != nil || usage.weeklyPct != nil {
-            return usage.dualLabel
+        let s = usage.sessionPct.map { String(format: "%.0f", $0) }
+        let w = usage.weeklyPct.map { String(format: "%.0f", $0) }
+        switch (s, w) {
+        case let (s?, w?): return "\(s)|\(w)"
+        case let (s?, nil): return "\(s)%"
+        case let (nil, w?): return "\(w)%"
+        default:
+            if let lanes = usage.quotaLanes, !lanes.isEmpty {
+                return lanes.map { String(format: "%.0f", $0.pct) }.joined(separator: "|")
+            }
+            return nil
         }
-        if let lanes = usage.quotaLanes, !lanes.isEmpty {
-            return lanes.map { String(format: "%.0f", $0.pct) }.joined(separator: "|")
-        }
-        return nil
     }
 
     private var pctColor: Color {
