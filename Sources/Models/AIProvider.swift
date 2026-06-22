@@ -37,6 +37,17 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable, Hashable {
         self == .claude || self == .codex
     }
 
+    /// The auth cookie a user can paste to sign in when the in-app web login is blocked
+    /// (e.g. Google SSO). `nil` for providers that auth through Google / DOM scraping.
+    var sessionCookie: (name: String, domain: String)? {
+        switch self {
+        case .claude: return ("sessionKey", ".claude.ai")
+        case .codex: return ("__Secure-next-auth.session-token", ".chatgpt.com")
+        case .cursor: return ("WorkosCursorSessionToken", ".cursor.com")
+        case .gemini, .antigravity: return nil
+        }
+    }
+
     var sessionBarLabel: String {
         switch self {
         case .cursor: return "Total"
