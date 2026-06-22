@@ -57,21 +57,18 @@ final class ClaudeQuotaProvider: DesklineQuotaProvider {
     }
 
     func fetchQuota() async -> QuotaSnapshot {
-        let data = await ClaudeUsageParser.parse()
-        let local = ClaudeLocalUsage.providerUsage(from: data)
-
-        // Claude Code local files are the source of truth for limits (ai-usage-counter menubar behavior).
-        if let local {
-            return .fromLocal(.claude, usage: local, detail: "Claude Code")
-        }
-
+        // Prefer claude.ai's own usage numbers when signed in — they match the Plan
+        // usage page exactly (server-computed). The local JSONL estimate can't, so it's
+        // only a labeled fallback when not signed in.
         switch await engine.fetchUsage() {
         case .success(let api):
             return .fromAPI(.claude, usage: api)
-        case .authExpired:
-            return .unavailable(.claude, detail: "No Claude Code usage data")
-        case .failure:
-            return .unavailable(.claude, detail: "No Claude Code usage data")
+        case .authExpired, .failure:
+            let data = await ClaudeUsageParser.parse()
+            if let local = ClaudeLocalUsage.providerUsage(from: data) {
+                return .fromLocal(.claude, usage: local, detail: "Claude Code (estimate)")
+            }
+            return .unavailable(.claude, detail: "Sign in to claude.ai for exact usage")
         }
     }
 }

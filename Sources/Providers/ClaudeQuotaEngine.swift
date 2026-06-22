@@ -28,7 +28,22 @@ final class ClaudeQuotaEngine {
     }
 
     func presentInAppLogin(onComplete: @escaping @MainActor () -> Void) {
-        onComplete()
+        WebAuthController.show(WebAuthController.Config(
+            providerID: .claude,
+            title: "Sign in to Claude",
+            startURL: URL(string: "https://claude.ai/login")!,
+            dataStore: dataStore,
+            loginCheck: { _, url in
+                url.host?.contains("claude.ai") == true
+                    && !url.path.contains("login")
+                    && !url.path.contains("magic-link")
+            },
+            authCookieCheck: { ds in
+                await ds.hasCookie(domain: "claude.ai") {
+                    $0.name == "sessionKey" && !$0.value.isEmpty
+                }
+            }
+        ), onComplete: onComplete)
     }
 
     func signOut() async {

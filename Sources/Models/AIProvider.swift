@@ -30,7 +30,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable, Hashable {
     }
 
     var supportsWebLogin: Bool {
-        self != .claude
+        true
     }
 
     var supportsLocalQuota: Bool {
