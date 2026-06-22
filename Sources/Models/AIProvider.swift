@@ -48,6 +48,9 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable, Hashable {
         }
     }
 
+    /// ChatGPT's next-auth session JWT is split across `.0`/`.1` cookies when large.
+    var sessionCookieChunked: Bool { self == .codex }
+
     var sessionBarLabel: String {
         switch self {
         case .cursor: return "Total"

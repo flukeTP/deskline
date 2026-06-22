@@ -264,12 +264,22 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Paste \(provider.displayName) session token")
                 .font(.headline)
-            Text("In your browser, open \(site) → DevTools → Application → Cookies → \(site) → copy the value of \"\(spec?.name ?? "")\" and paste it here. It stays on your Mac.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            TextField("\(spec?.name ?? "session token") value", text: $keyInput, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(2...5)
+            if provider.sessionCookieChunked {
+                Text("In your browser, open \(site) → DevTools → Application → Cookies → \(site). This token is split: copy the value of \"\(spec?.name ?? "").0\" onto the first line and \"\(spec?.name ?? "").1\" onto the second line below. It stays on your Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("In your browser, open \(site) → DevTools → Application → Cookies → \(site) → copy the value of \"\(spec?.name ?? "")\" and paste it here. It stays on your Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            TextField(
+                provider.sessionCookieChunked ? "chunk .0\nchunk .1" : "\(spec?.name ?? "session token") value",
+                text: $keyInput,
+                axis: .vertical
+            )
+            .textFieldStyle(.roundedBorder)
+            .lineLimit(provider.sessionCookieChunked ? 4...8 : 2...5)
             HStack {
                 Spacer()
                 Button("Cancel") { keySheetProvider = nil; keyInput = "" }
