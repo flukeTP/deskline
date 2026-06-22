@@ -145,6 +145,23 @@ Plus WidgetKit timeline budgets make it non-real-time anyway.
 
 ---
 
+## 2026-06-22 — Local Claude % read 100% when nowhere near the limit
+
+**Decision:** Two fixes to the local quota estimate so it stops false-alarming:
+
+1. **Discount cache-read tokens** in quota math — `TokenUsage.quota = input + output + cacheWrite + cacheRead/10`. The old `total` counted cache reads (re-read every turn) at full weight, ballooning a heavy cache-reuse session far past reality. Anthropic's own pricing weights cache reads at ~0.1x.
+2. **Measure the session limit from *past* blocks, the same way as current usage** — `max(tokens of blocks that hit "you've hit your limit", largest past block)`, excluding the current active block. The old detector summed tokens over a rolling 5h anchor misaligned with the billing blocks, so the "limit" was undercounted and the current block blew past it → pinned at 100%.
+
+**Context (real data):** current block read 68.8M tokens (raw) / 100% while the user wasn't rate-limited; detected limit was 23.5M. The mismatch was cache-read inflation + an inconsistent limit window. After the fix the same session reads **30.5%**, matching reality.
+
+**Consequences:**
+
+- Same flaw exists upstream in ai-usage-counter (identical `total`); this is a deliberate divergence.
+- The estimate is still an estimate — the real ceiling is only knowable from an actual rate-limit event or the signed-in API. But it no longer fires false critical alerts.
+- Tests cover the cache weighting (`TokenQuotaTests`).
+
+---
+
 ## Reference — ai-usage-counter parser map
 
 | Provider | Source in ai-usage-counter | Data source |

@@ -8,6 +8,13 @@ struct TokenUsage: Sendable {
 
     var total: Int { input + output + cacheWrite + cacheRead }
     var billed: Int { input + output }
+
+    /// Token count for *quota* math. Cache-read tokens are re-read on every turn and
+    /// balloon `total` far past what Anthropic's rate limits actually charge (their
+    /// pricing weights cache reads at ~0.1x of input). Counting them at full weight made
+    /// a heavy cache-reuse session read as 100% used while the real limit was nowhere near.
+    /// Weight cache reads at 0.1x (and cache writes at full) to track the real ceiling.
+    var quota: Int { input + output + cacheWrite + cacheRead / 10 }
 }
 
 struct ModelStats: Sendable, Identifiable {
@@ -61,6 +68,7 @@ struct BillingBlock: Sendable {
     var cost: Double = 0
     var messages: Int = 0
     var models: [String] = []
+    var hitRateLimit: Bool = false   // a "you've hit your limit" event landed in this block
 
     // Set after computing max across all blocks
     var maxTokens: Int = 1

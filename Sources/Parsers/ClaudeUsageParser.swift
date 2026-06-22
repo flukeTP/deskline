@@ -90,10 +90,17 @@ enum ClaudeUsageParser {
         // Build 5-hour billing blocks
         let blocks = buildBillingBlocks(from: sorted)
 
-        // Detect limits from actual rate_limit error events (most accurate method)
-        let detected = ClaudeUsageParser.detectLimitsFromRateLimitEvents(blocks: blocks, sorted: sorted)
-        let sessionLimit = detected.session > 0 ? detected.session : (blocks.map { $0.tokens }.max() ?? 1)
+        // Session limit, measured the SAME way as current usage (quota tokens per block)
+        // so the ratio is consistent. Evidence comes from *past* blocks only — the current
+        // active block is what we're measuring, so including it would force 100%.
+        // Prefer the tokens of blocks that actually hit "you've hit your limit"; otherwise
+        // the largest past block is the floor of where the ceiling must be.
+        let pastBlocks = blocks.dropLast(blocks.last?.isActive == true ? 1 : 0)
+        let limitedBlockTokens = pastBlocks.filter { $0.hitRateLimit }.map { $0.tokens }.max() ?? 0
+        let largestPastBlock = pastBlocks.map { $0.tokens }.max() ?? 0
+        let sessionLimit = max(limitedBlockTokens, largestPastBlock, 1)
         data.detectedSessionLimit = sessionLimit
+        let detected = ClaudeUsageParser.detectLimitsFromRateLimitEvents(blocks: blocks, sorted: sorted)
 
         // Find current active block
         if var last = blocks.last, last.isActive {
@@ -107,7 +114,7 @@ enum ClaudeUsageParser {
         var weeklyModelSet = Set<String>()
         for r in weeklyRecords {
             if !r.isRateLimit && !r.isExtraUsage {
-                wb.tokens += r.usage.total
+                wb.tokens += r.usage.quota
                 wb.cost += r.cost
                 wb.messages += 1
                 weeklyModelSet.insert(modelDisplayName(r.model))
@@ -141,9 +148,10 @@ enum ClaudeUsageParser {
                     blocks.append(block)
                     current = makeBlock(from: r, cal: cal)
                 } else {
-                    block.tokens += r.usage.total
+                    block.tokens += r.usage.quota
                     block.cost += r.cost
                     block.messages += 1
+                    if r.isRateLimit { block.hitRateLimit = true }
                     if !block.models.contains(modelDisplayName(r.model)) {
                         block.models.append(modelDisplayName(r.model))
                     }
@@ -163,10 +171,11 @@ enum ClaudeUsageParser {
         return BillingBlock(
             blockStart: hourStart,
             lastActivity: r.timestamp,
-            tokens: r.usage.total,
+            tokens: r.usage.quota,
             cost: r.cost,
             messages: 1,
-            models: [modelDisplayName(r.model)]
+            models: [modelDisplayName(r.model)],
+            hitRateLimit: r.isRateLimit
         )
     }
 
@@ -196,7 +205,7 @@ enum ClaudeUsageParser {
             } else if r.isExtraUsage, let c = current {
                 weeklyExtraCandidates.append(c.tokens)
             } else {
-                current = (current!.start, current!.tokens + r.usage.total)
+                current = (current!.start, current!.tokens + r.usage.quota)
             }
         }
 
@@ -219,7 +228,7 @@ enum ClaudeUsageParser {
         var weekGroups = [Date: Int]()
         for r in sorted {
             let ws = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: r.timestamp)) ?? r.timestamp
-            weekGroups[ws, default: 0] += r.usage.total
+            weekGroups[ws, default: 0] += r.usage.quota
         }
         return weekGroups.values.max() ?? 1
     }
