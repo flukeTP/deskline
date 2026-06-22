@@ -102,6 +102,19 @@ enum ClaudeUsageParser {
         data.detectedSessionLimit = sessionLimit
         let detected = ClaudeUsageParser.detectLimitsFromRateLimitEvents(blocks: blocks, sorted: sorted)
 
+        if ProcessInfo.processInfo.environment["DESKLINE_DEBUG"] != nil {
+            let limited = blocks.filter { $0.hitRateLimit }.map { $0.tokens }.sorted()
+            let allTokens = blocks.map { $0.tokens }.sorted()
+            FileHandle.standardError.write(Data((
+                "\n[DEBUG] blocks=\(blocks.count) "
+                + "rateLimitedBlockTokens=\(limited) "
+                + "limitedBlockTokens(past)=\(limitedBlockTokens) "
+                + "largestPastBlock=\(largestPastBlock) "
+                + "allBlockTokens=\(allTokens) "
+                + "currentActive=\(blocks.last?.isActive == true ? blocks.last!.tokens : -1)\n"
+            ).utf8))
+        }
+
         // Find current active block
         if var last = blocks.last, last.isActive {
             last.maxTokens = sessionLimit

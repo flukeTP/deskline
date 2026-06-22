@@ -136,12 +136,18 @@ struct ProviderStripCell: View {
 
     @State private var pulse = false
 
-    private var sessionFraction: Double? {
-        snapshot.usage?.sessionPct.map { min($0 / 100, 1) }
-    }
-
-    private var weeklyFraction: Double? {
-        snapshot.usage?.weeklyPct.map { min($0 / 100, 1) }
+    private var stripFractions: [Double] {
+        guard let usage = snapshot.usage else { return [] }
+        if let lanes = usage.quotaLanes, !lanes.isEmpty {
+            var fractions: [Double] = []
+            if let total = usage.sessionPct {
+                fractions.append(min(total / 100, 1))
+            }
+            fractions.append(contentsOf: lanes.map { min($0.pct / 100, 1) })
+            return fractions
+        }
+        return [usage.sessionPct, usage.weeklyPct]
+            .compactMap { $0.map { min($0 / 100, 1) } }
     }
 
     var body: some View {
@@ -155,17 +161,14 @@ struct ProviderStripCell: View {
                     .lineLimit(1)
             }
 
-            if sessionFraction == nil && weeklyFraction == nil {
+            if stripFractions.isEmpty {
                 Text("—")
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 2) {
-                    if let sessionFraction {
-                        StripMicroBar(fraction: sessionFraction)
-                    }
-                    if let weeklyFraction {
-                        StripMicroBar(fraction: weeklyFraction)
+                    ForEach(Array(stripFractions.enumerated()), id: \.offset) { _, fraction in
+                        StripMicroBar(fraction: fraction)
                     }
                 }
             }
@@ -210,14 +213,19 @@ struct ProviderStripCell: View {
 
     private var pctLabel: String? {
         guard let usage = snapshot.usage else { return nil }
-        let s = usage.sessionPct.map { String(format: "%.0f", $0) }
-        let w = usage.weeklyPct.map { String(format: "%.0f", $0) }
-        switch (s, w) {
-        case let (s?, w?): return "\(s)|\(w)"
-        case let (s?, nil): return "\(s)%"
-        case let (nil, w?): return "\(w)%"
-        default: return nil
+        if let total = usage.sessionPct,
+           let lanes = usage.quotaLanes, lanes.count >= 2 {
+            let auto = lanes[0].pct
+            let api = lanes[1].pct
+            return "\(Int(total))|\(Int(auto))|\(Int(api))"
         }
+        if usage.sessionPct != nil || usage.weeklyPct != nil {
+            return usage.dualLabel
+        }
+        if let lanes = usage.quotaLanes, !lanes.isEmpty {
+            return lanes.map { String(format: "%.0f", $0.pct) }.joined(separator: "|")
+        }
+        return nil
     }
 
     private var pctColor: Color {

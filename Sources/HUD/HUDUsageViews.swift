@@ -172,7 +172,9 @@ extension QuotaSnapshot {
         return lanes.map { lane in
             let reset: String
             if let resetAt = lane.resetAt, resetAt > Date() {
-                reset = "Resets in \(UsageFormatters.formatDuration(resetAt.timeIntervalSinceNow))"
+                reset = provider == .cursor
+                    ? "Resets \(UsageFormatters.formatResetClock(resetAt))"
+                    : "Resets in \(UsageFormatters.formatDuration(resetAt.timeIntervalSinceNow))"
             } else if let resetText = lane.resetText, !resetText.isEmpty {
                 reset = resetText
             } else {

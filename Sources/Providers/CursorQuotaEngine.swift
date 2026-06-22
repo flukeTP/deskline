@@ -130,7 +130,7 @@ final class CursorQuotaEngine {
         }
     }
 
-    static func parseUsage(_ obj: [String: Any]) -> ProviderUsage? {
+    nonisolated static func parseUsage(_ obj: [String: Any]) -> ProviderUsage? {
         var u = ProviderUsage(fetchedAt: Date())
 
         if let membership = obj["membershipType"] as? String, !membership.isEmpty {
@@ -148,12 +148,41 @@ final class CursorQuotaEngine {
             return u
         }
 
-        if let individual = obj["individualUsage"] as? [String: Any],
-           let plan = individual["plan"] as? [String: Any],
-           plan["enabled"] as? Bool != false {
+        if let plan = extractPlan(from: obj) {
             u.sessionPct = planPercent(plan, key: "totalPercentUsed", usedKey: "used", limitKey: "limit")
-            u.weeklyPct = planPercent(plan, key: "apiPercentUsed", usedKey: "used", limitKey: "limit")
-                ?? planPercent(plan, key: "autoPercentUsed", usedKey: "used", limitKey: "limit")
+
+            let autoPct = planPercent(plan, key: "autoPercentUsed", usedKey: "used", limitKey: "limit")
+            let apiPct = planPercent(plan, key: "apiPercentUsed", usedKey: "used", limitKey: "limit")
+            var breakdownLanes: [ProviderQuotaLane] = []
+            let cycleReset = u.weeklyResetAt
+
+            if let autoPct {
+                breakdownLanes.append(ProviderQuotaLane(
+                    id: "auto-composer",
+                    label: "Auto + Composer",
+                    group: nil,
+                    pct: autoPct,
+                    resetAt: cycleReset,
+                    resetText: nil
+                ))
+            }
+            if let apiPct {
+                breakdownLanes.append(ProviderQuotaLane(
+                    id: "api",
+                    label: "API",
+                    group: nil,
+                    pct: apiPct,
+                    resetAt: cycleReset,
+                    resetText: nil
+                ))
+            }
+
+            if !breakdownLanes.isEmpty {
+                u.quotaLanes = breakdownLanes
+                u.weeklyPct = nil
+            } else {
+                u.weeklyPct = apiPct ?? autoPct
+            }
 
             if let breakdown = plan["breakdown"] as? [String: Any],
                let used = providerNum(plan["used"]),
@@ -163,11 +192,15 @@ final class CursorQuotaEngine {
                     .compactMap { $0 }
                     .joined(separator: " · ")
                 _ = included
+            } else if let limit = providerNum(plan["limit"]), limit > 0,
+                      let includedSpend = providerNum(plan["includedSpend"]) {
+                u.planName = [u.planName, String(format: "$%.0f/$%.0f", includedSpend / 100, limit / 100)]
+                    .compactMap { $0 }
+                    .joined(separator: " · ")
             }
         }
 
-        if let individual = obj["individualUsage"] as? [String: Any],
-           let onDemand = individual["onDemand"] as? [String: Any],
+        if let onDemand = extractOnDemand(from: obj),
            onDemand["enabled"] as? Bool == true {
             let usedCents = providerNum(onDemand["used"]) ?? 0
             if usedCents > 0 {
@@ -185,7 +218,7 @@ final class CursorQuotaEngine {
                     lane.label = "On-demand"
                     lane.resetText = spent
                 }
-                u.quotaLanes = [lane]
+                u.quotaLanes = (u.quotaLanes ?? []) + [lane]
             }
         }
 
@@ -193,7 +226,31 @@ final class CursorQuotaEngine {
         return u
     }
 
-    private static func planPercent(
+    /// `individualUsage.plan` (legacy) or root `planUsage` (newer dashboard shape).
+    nonisolated private static func extractPlan(from obj: [String: Any]) -> [String: Any]? {
+        if let individual = obj["individualUsage"] as? [String: Any],
+           let plan = individual["plan"] as? [String: Any],
+           plan["enabled"] as? Bool != false {
+            return plan
+        }
+        if let plan = obj["planUsage"] as? [String: Any] {
+            return plan
+        }
+        return nil
+    }
+
+    nonisolated private static func extractOnDemand(from obj: [String: Any]) -> [String: Any]? {
+        if let individual = obj["individualUsage"] as? [String: Any],
+           let onDemand = individual["onDemand"] as? [String: Any] {
+            return onDemand
+        }
+        if let spend = obj["spendLimitUsage"] as? [String: Any] {
+            return spend
+        }
+        return nil
+    }
+
+    nonisolated private static func planPercent(
         _ plan: [String: Any],
         key: String,
         usedKey: String,

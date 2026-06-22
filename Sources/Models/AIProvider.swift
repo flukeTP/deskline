@@ -39,7 +39,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable, Hashable {
 
     var sessionBarLabel: String {
         switch self {
-        case .cursor: return "Plan Usage"
+        case .cursor: return "Total"
         default: return "Current Session"
         }
     }
